@@ -30,6 +30,20 @@ function selectField(label,name,opts,value=""){return `<div class="field"><label
 function pageHead(title,actions=""){return `<div class="page-head"><h1>${title}</h1><div class="actions">${actions}</div></div>`}
 function table(headers,rows,empty="Nenhum registro"){return `<div class="table-wrap"><table class="table"><thead><tr>${headers.map(h=>`<th>${h}</th>`).join("")}</tr></thead><tbody>${rows||`<tr><td colspan="${headers.length}" class="empty">${empty}</td></tr>`}</tbody></table></div>`}
 
+function decorateTables(){
+  document.querySelectorAll('.table').forEach(tbl=>{
+    const labels=[...tbl.querySelectorAll('thead th')].map(th=>th.textContent.trim());
+    tbl.querySelectorAll('tbody tr').forEach(tr=>{
+      [...tr.children].forEach((td,i)=>{ if(td.tagName==='TD' && !td.classList.contains('empty')) td.setAttribute('data-label',labels[i]||''); });
+    });
+  });
+}
+function syncMobileMenu(){
+  const menu=$('#mobileMenu'); if(!menu)return;
+  const labels=[...document.querySelectorAll('#tabs button')];
+  menu.innerHTML=labels.map(b=>`<button class="${b.dataset.page===page?'active':''}" data-page="${b.dataset.page}">${b.textContent}</button>`).join('');
+}
+function closeMobileMenu(){ $('#mobileDrawer')?.classList.add('hidden'); }
 function render(){
  $("#appTitle").textContent=db.title||"LOJINHA DA TUCA";
  document.querySelectorAll("#tabs button").forEach(b=>b.classList.toggle("active",b.dataset.page===page));
@@ -268,3 +282,18 @@ $("#resetBtn").onclick=()=>{if(confirm("ATENÇÃO: isso apagará os dados deste 
 $("#brand").ondblclick=()=>{const n=prompt("Nome do cabeçalho:",db.title);if(n&&n.trim()){db.title=n.trim();save();render()}};
 window.newProduct=newProduct;window.editProduct=editProduct;window.deleteProduct=deleteProduct;window.restock=restock;window.newClient=newClient;window.editClient=editClient;window.deleteClient=deleteClient;window.newSale=newSale;window.payment=payment;window.deleteSale=deleteSale;window.whatsapp=whatsapp;window.newSupplier=newSupplier;window.editSupplier=editSupplier;window.deleteSupplier=deleteSupplier;window.newPayable=newPayable;window.editPayable=editPayable;window.supplierPayment=supplierPayment;window.withdrawal=withdrawal;window.go=go;window.closeModal=closeModal;window.saveProduct=saveProduct;window.saveClient=saveClient;window.saveSale=saveSale;window.savePayment=savePayment;window.saveSupplier=saveSupplier;window.savePayable=savePayable;window.saveSupplierPayment=saveSupplierPayment;window.saveWithdrawal=saveWithdrawal;window.exportCsv=exportCsv;
 render();
+
+
+// V6 mobile navigation
+$('#mobileMenuBtn')?.addEventListener('click',()=>$('#mobileDrawer')?.classList.remove('hidden'));
+$('#closeMobileMenu')?.addEventListener('click',closeMobileMenu);
+$('#mobileDrawer')?.addEventListener('click',e=>{
+  const b=e.target.closest('button[data-page]');
+  if(b){page=b.dataset.page;closeMobileMenu();render();}
+});
+$('#mobileBackupBtn')?.addEventListener('click',()=>$('#backupBtn')?.click());
+$('#mobileRestoreFile')?.addEventListener('change',e=>{
+  const src=e.target.files?.[0]; if(!src)return;
+  const r=new FileReader(); r.onload=()=>{try{db=JSON.parse(r.result);save();render();toast('Backup importado');}catch(err){alert('Backup inválido.');}}; r.readAsText(src); e.target.value='';
+});
+$('#mobileResetBtn')?.addEventListener('click',()=>$('#resetBtn')?.click());

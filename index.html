@@ -13,6 +13,7 @@
       <img src="assets/tuca.png" alt="Tuca">
       <div><div id="appTitle">LOJINHA DA TUCA</div><small>Gestão da loja</small></div>
     </div>
+    <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Abrir menu">☰</button>
     <div class="top-actions">
       <button class="btn ghost" id="backupBtn">Exportar backup</button>
       <label class="btn ghost file-btn">Importar backup<input type="file" id="restoreFile" accept=".json"></label>
@@ -31,6 +32,15 @@
     <button data-page="finished">✅ Finalizadas</button>
     <button data-page="reports">📊 Relatórios</button>
   </nav>
+  <div class="mobile-drawer hidden" id="mobileDrawer">
+    <div class="mobile-drawer-head"><b>LOJINHA DA TUCA</b><button class="icon-btn" id="closeMobileMenu">✕</button></div>
+    <div class="mobile-menu" id="mobileMenu"></div>
+    <div class="mobile-tools">
+      <button class="btn ghost" id="mobileBackupBtn">☁️ Exportar backup</button>
+      <label class="btn ghost file-btn">☁️ Importar backup<input type="file" id="mobileRestoreFile" accept=".json"></label>
+      <button class="btn danger" id="mobileResetBtn">🗑️ Limpar dados</button>
+    </div>
+  </div>
 
   <main id="content"></main>
 </div>

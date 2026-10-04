@@ -14,3 +14,29 @@ input,select,textarea{width:100%;border:1px solid #cfd8dc;border-radius:7px;padd
 .detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 18px}.detail-grid p{margin:4px 0}.panel table tbody tr[ondblclick]{cursor:pointer}.panel table tbody tr[ondblclick]:hover{background:rgba(0,0,0,.035)}
 .detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 18px}.detail-grid p{margin:4px 0}.panel table tbody tr[ondblclick]{cursor:pointer}.panel table tbody tr[ondblclick]:hover{background:rgba(0,0,0,.035)}
 .report-total td{font-size:1.08em;font-weight:700;border-top:2px solid #2878d0;background:#eef6ff}
+
+/* V6 — layout mobile inspirado no esboço aprovado */
+.mobile-menu-btn,.mobile-drawer{display:none}
+@media(max-width:800px){
+  body{background:#f5f7f9;overflow-x:hidden}
+  .topbar{height:78px;padding:8px 14px;background:#fff;position:sticky;top:0;z-index:40;align-items:center}
+  .brand{gap:9px;min-width:0}.brand img{width:52px;height:52px}.brand #appTitle{font-size:18px;line-height:1.05;letter-spacing:.2px}.brand small{font-size:12px}
+  .top-actions{display:none}
+  .mobile-menu-btn{display:block;margin-left:auto;border:0;border-radius:12px;background:#ff3d86;color:#fff;font-size:25px;width:48px;height:48px;line-height:1;cursor:pointer;box-shadow:0 5px 14px #ff3d8630}
+  .tabs{display:none}
+  main{padding:14px 12px 30px;max-width:none}
+  .page-head{align-items:center;margin:2px 0 12px;gap:8px}.page-head h1{font-size:22px}.page-head .actions{gap:6px}.page-head .actions .btn{padding:10px 12px;font-size:13px}
+  .cards{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.card{padding:13px;border-radius:14px;min-height:98px}.card .value{font-size:20px}.card .label{font-size:12px}
+  .panel{border-radius:14px;padding:10px;margin-bottom:12px}.toolbar{margin-bottom:10px}.search{min-width:0}
+  .grid2,.grid3{grid-template-columns:1fr;gap:9px}.field label{font-size:12px}input,select,textarea{padding:11px;border-radius:9px}
+  /* Tabelas viram cartões verticais, eliminando a rolagem horizontal */
+  .table-wrap{border:0;overflow:visible}.table{min-width:0;width:100%;display:block}.table thead{display:none}.table tbody{display:block}.table tbody tr{display:block;background:#fff;border:1px solid #e3e8eb;border-radius:14px;margin:0 0 10px;padding:10px;box-shadow:0 2px 8px #2632380b}.table tbody tr:hover td{background:transparent}.table td{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:7px 2px;border-bottom:1px solid #f0f2f3;text-align:right;min-height:31px}.table td:last-child{border-bottom:0}.table td::before{content:attr(data-label);font-size:11px;font-weight:700;color:#78909c;text-align:left;flex:0 0 42%;}.table td.empty{display:block;text-align:center;padding:24px}.table td.empty::before{display:none}.table td .icon-btn,.table td button{padding:8px 10px}.nowrap{white-space:normal}
+  .modal{padding:8px;align-items:flex-end}.modal-card{width:100%;max-height:94vh;border-radius:18px 18px 0 0;padding:15px}.modal-head{position:sticky;top:0;background:#fff;padding-bottom:10px;z-index:2}.modal-actions{position:sticky;bottom:-15px;background:#fff;padding:12px 0 2px;z-index:2}.modal-actions .btn{flex:1}
+  .detail-grid{grid-template-columns:1fr;gap:5px}.detail-grid p{padding:5px 0;border-bottom:1px solid #eef1f2}
+  .toast{left:12px;right:12px;bottom:15px;text-align:center}
+  /* Menu lateral */
+  .mobile-drawer{display:block;position:fixed;inset:0;background:#fff;z-index:120;transform:translateX(100%);transition:transform .22s ease;overflow:auto;padding-bottom:20px}.mobile-drawer:not(.hidden){transform:translateX(0)}
+  .mobile-drawer.hidden{display:block;pointer-events:none}.mobile-drawer-head{height:78px;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;background:linear-gradient(135deg,#ff3d86,#ff5b99);color:#fff;font-size:18px;position:sticky;top:0;z-index:2}.mobile-drawer-head .icon-btn{background:#ffffff22;color:#fff;font-size:20px}
+  .mobile-menu{padding:10px 12px}.mobile-menu button{display:flex;width:100%;border:0;background:#fff;border-radius:11px;padding:13px 14px;margin:3px 0;font-size:16px;text-align:left;color:#263238;cursor:pointer}.mobile-menu button.active{background:#ffe6ef;color:#e91e63;font-weight:700}.mobile-tools{border-top:1px solid #e9edef;padding:12px;display:grid;gap:8px}.mobile-tools .btn{width:100%;text-align:center;padding:12px}
+}
+@media(min-width:801px){.mobile-menu-btn{display:none}}
