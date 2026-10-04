@@ -27,7 +27,7 @@ $("#modal").addEventListener("click",e=>e.stopPropagation());
 document.addEventListener("keydown",e=>{if(e.key==="Escape")e.preventDefault()});
 function formField(label,name,value="",type="text"){return `<div class="field"><label>${label}</label><input id="f_${name}" type="${type}" value="${esc(value)}"></div>`}
 function selectField(label,name,opts,value=""){return `<div class="field"><label>${label}</label><select id="f_${name}">${opts.map(o=>`<option ${String(o[0])===String(value)?"selected":""} value="${esc(o[0])}">${esc(o[1])}</option>`).join("")}</select></div>`}
-function pageHead(title,actions=""){return `<div class="page-head"><div class="page-title-wrap"><button class="mobile-back-btn" onclick="go('dashboard')" aria-label="Voltar">←</button><h1>${title}</h1></div><div class="actions">${actions}</div></div>`}
+function pageHead(title,actions=""){return `<div class="page-head"><h1>${title}</h1><div class="actions">${actions}</div></div>`}
 function table(headers,rows,empty="Nenhum registro"){return `<div class="table-wrap"><table class="table"><thead><tr>${headers.map(h=>`<th>${h}</th>`).join("")}</tr></thead><tbody>${rows||`<tr><td colspan="${headers.length}" class="empty">${empty}</td></tr>`}</tbody></table></div>`}
 
 function decorateTables(){
@@ -65,21 +65,21 @@ function dashboard(){
  `<div class="page-head desktop-head"><h1>Painel da loja</h1><div class="actions"><button class="btn primary" onclick="newSale()">+ Nova venda</button></div></div>`+
  `<div class="mobile-page-head"><h1>Painel da loja</h1><button class="btn primary" onclick="newSale()">+ Nova venda</button></div>`+
  `<div class="cards dashboard-cards">
- <div class="card metric-sale dashboard-link" onclick="go('sales')" role="button" tabindex="0"><div class="metric-icon">🛒</div><div class="label">Vendas hoje</div><div class="value">${money(todaySales)}</div><div class="metric-note">${db.sales.filter(x=>x.sale_date===today()).length} venda(s)</div></div>
- <div class="card metric-clients dashboard-link" onclick="go('clients')" role="button" tabindex="0"><div class="metric-icon">👥</div><div class="label">Clientes</div><div class="value">${db.clients.length}</div><div class="metric-note">cadastrados</div></div>
- <div class="card metric-products dashboard-link" onclick="go('products')" role="button" tabindex="0"><div class="metric-icon">📦</div><div class="label">Produtos</div><div class="value">${stock}</div><div class="metric-note">em estoque</div></div>
- <div class="card metric-receive dashboard-link" onclick="go('receivables')" role="button" tabindex="0"><div class="metric-icon">💵</div><div class="label">A receber</div><div class="value">${money(receivable)}</div><div class="metric-note">em aberto</div></div>
- <div class="card metric-pay dashboard-link" onclick="go('payables')" role="button" tabindex="0"><div class="metric-icon">🚚</div><div class="label">A pagar</div><div class="value">${money(payable)}</div><div class="metric-note">contas em aberto</div></div>
- <div class="card metric-month dashboard-link" onclick="go('sales')" role="button" tabindex="0"><div class="metric-icon">📊</div><div class="label">Vendas mês</div><div class="value">${money(monthSales)}</div><div class="metric-note">${db.sales.filter(x=>(x.sale_date||'').slice(0,7)===monthKey).length} venda(s)</div></div>
+ <div class="card metric-sale"><div class="metric-icon">🛒</div><div class="label">Vendas hoje</div><div class="value">${money(todaySales)}</div><div class="metric-note">${db.sales.filter(x=>x.sale_date===today()).length} venda(s)</div></div>
+ <div class="card metric-clients"><div class="metric-icon">👥</div><div class="label">Clientes</div><div class="value">${db.clients.length}</div><div class="metric-note">cadastrados</div></div>
+ <div class="card metric-products"><div class="metric-icon">📦</div><div class="label">Produtos</div><div class="value">${stock}</div><div class="metric-note">em estoque</div></div>
+ <div class="card metric-receive"><div class="metric-icon">💵</div><div class="label">A receber</div><div class="value">${money(receivable)}</div><div class="metric-note">em aberto</div></div>
+ <div class="card metric-pay"><div class="metric-icon">🚚</div><div class="label">A pagar</div><div class="value">${money(payable)}</div><div class="metric-note">contas em aberto</div></div>
+ <div class="card metric-month"><div class="metric-icon">📊</div><div class="label">Vendas mês</div><div class="value">${money(monthSales)}</div><div class="metric-note">${db.sales.filter(x=>(x.sale_date||'').slice(0,7)===monthKey).length} venda(s)</div></div>
  </div>
- <div class="mobile-balance"><span>Valor do estoque (venda)</span><strong>${money(stockValue)}</strong><span class="desktop-only"> • Em atraso: ${money(overdue)}</span></div>
  <div class="panel shortcuts-panel"><h3>Atalhos</h3><div class="actions shortcuts-actions">
- <button class="btn ghost" onclick="newProduct()">Cadastrar produto</button>
- <button class="btn ghost" onclick="newClient()">Cadastrar cliente</button>
- <button class="btn ghost" onclick="newSupplier()">Cadastrar fornecedor</button>
- <button class="btn ghost" onclick="newPayable()">Nova conta a pagar</button>
+ <button class="btn ghost" onclick="go('products')">Cadastrar produto</button>
+ <button class="btn ghost" onclick="go('clients')">Cadastrar cliente</button>
+ <button class="btn ghost" onclick="go('suppliers')">Cadastrar fornecedor</button>
+ <button class="btn ghost" onclick="go('payables')">Nova conta a pagar</button>
  <button class="btn ghost" onclick="go('reports')">Ver relatório</button>
  </div></div>
+ <div class="mobile-balance"><span>Valor do estoque (venda)</span><strong>${money(stockValue)}</strong><span class="desktop-only"> • Em atraso: ${money(overdue)}</span></div>
  <div class="panel recent-panel"><h3>Últimas vendas</h3>${recentSales()}</div>`;
 }
 function go(p){page=p;render()}
@@ -124,8 +124,8 @@ function setupProductCalc(){
  if(margin.value==="Outra")wrap.style.display="block";
  if(!sale.value || !Number(sale.value))calc();
 }
-function newProduct(){modal("Novo produto",productForm(),`<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">Voltar</button><button class="btn primary" onclick="saveProduct()">Salvar</button></div>`);setupProductCalc()}
-function editProduct(id){const p=find(db.products,id);modal("Editar produto",productForm(p),`<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">Voltar</button><button class="btn primary" onclick="saveProduct(${id})">Salvar</button></div>`);setupProductCalc()}
+function newProduct(){modal("Novo produto",productForm(),`<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">Cancelar</button><button class="btn primary" onclick="saveProduct()">Salvar</button></div>`);setupProductCalc()}
+function editProduct(id){const p=find(db.products,id);modal("Editar produto",productForm(p),`<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">Cancelar</button><button class="btn primary" onclick="saveProduct(${id})">Salvar</button></div>`);setupProductCalc()}
 function saveProduct(id){
  const v=n=>$("#f_"+n).value.trim(), p=find(db.products,id)||{id:nextId(db.products)};
  const marginValue=v("margin")==="Outra"?(Number($("#f_customMargin")?.value)||0):Number(v("margin"))||0;
@@ -144,13 +144,13 @@ function clients(){
 function clientForm(c={}){
  return `<div class="grid2">${formField("Nome completo","name",c.name)}${formField("CPF","cpf",c.cpf)}${formField("Telefone","phone",c.phone)}${formField("Endereço","address",c.address)}</div><div class="field" style="margin-top:10px"><label>Observações</label><textarea id="f_notes">${esc(c.notes||"")}</textarea></div>`;
 }
-function newClient(prefill=""){modal("Novo cliente",clientForm({name:prefill}),`<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">Voltar</button><button class="btn primary" onclick="saveClient()">Salvar</button></div>`)}
+function newClient(prefill=""){modal("Novo cliente",clientForm({name:prefill}),`<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">Cancelar</button><button class="btn primary" onclick="saveClient()">Salvar</button></div>`)}
 function clientDetails(id){
  const c=find(db.clients,id); if(!c)return; const sales=db.sales.filter(s=>Number(s.client_id)===Number(id));
  const total=sales.reduce((a,s)=>a+Number(s.total||0),0), paid=sales.reduce((a,s)=>a+Number(s.paid||0),0);
  modal("Detalhes do cliente",`<div class="detail-grid"><p><b>Nome:</b> ${esc(c.name||"")}</p><p><b>CPF:</b> ${esc(c.cpf||"")}</p><p><b>Telefone:</b> ${esc(c.phone||"")}</p><p><b>Endereço:</b> ${esc(c.address||"")}</p><p><b>Total de vendas:</b> ${sales.length}</p><p><b>Valor vendido:</b> ${money(total)}</p><p><b>Recebido:</b> ${money(paid)}</p><p><b>Em aberto:</b> ${money(Math.max(0,total-paid))}</p><p><b>Observações:</b> ${esc(c.notes||"")}</p></div>`,`<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">Fechar</button><button class="btn primary" onclick="closeModal();editClient(${id})">Editar</button></div>`)
 }
-function editClient(id){const c=find(db.clients,id);modal("Editar cliente",clientForm(c),`<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">Voltar</button><button class="btn primary" onclick="saveClient(${id})">Salvar</button></div>`)}
+function editClient(id){const c=find(db.clients,id);modal("Editar cliente",clientForm(c),`<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">Cancelar</button><button class="btn primary" onclick="saveClient(${id})">Salvar</button></div>`)}
 function saveClient(id){
  const v=n=>$("#f_"+n).value.trim(),c=find(db.clients,id)||{id:nextId(db.clients)};
  Object.assign(c,{name:v("name"),cpf:v("cpf"),phone:v("phone"),address:v("address"),notes:$("#f_notes").value});
@@ -170,7 +170,7 @@ function newSale(){
  if(!db.products.some(p=>p.stock>0))return alert("Não há produtos disponíveis para venda.");
  const clients=[["","Selecione..."],...db.clients.map(c=>[c.id,c.name])];
  const prods=[...db.products.filter(p=>p.stock>0).map(p=>[p.id,`${p.description} / ${p.size||"-"} — ${money(p.sale)} — estoque ${p.stock}`])];
- modal("Nova venda",`<div class="grid2">${selectField("Cliente","client_id",clients)}${selectField("Produto","product_id",prods)}${formField("Quantidade","qty",1,"number")}${selectField("Pagamento","payment",[["À vista","À vista"],["Crédito","Crédito"],["PIX","PIX"],["Cartão","Cartão"],["Outro","Outro"]])}${selectField("Parcelas","installments",[["1","1x"],["2","2x"],["3","3x"],["4","4x"],["5","5x"],["6","6x"]],1)}${formField("Vencimento","due_date",today(),"date")}</div><div class="panel" style="margin-top:12px"><b>Total: <span id="saleTotal">${money(0)}</span></b></div>`, `<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">Voltar</button><button class="btn primary" onclick="saveSale()">Confirmar venda</button></div>`);
+ modal("Nova venda",`<div class="grid2">${selectField("Cliente","client_id",clients)}${selectField("Produto","product_id",prods)}${formField("Quantidade","qty",1,"number")}${selectField("Pagamento","payment",[["À vista","À vista"],["Crédito","Crédito"],["PIX","PIX"],["Cartão","Cartão"],["Outro","Outro"]])}${selectField("Parcelas","installments",[["1","1x"],["2","2x"],["3","3x"],["4","4x"],["5","5x"],["6","6x"]],1)}${formField("Vencimento","due_date",today(),"date")}</div><div class="panel" style="margin-top:12px"><b>Total: <span id="saleTotal">${money(0)}</span></b></div>`, `<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">Cancelar</button><button class="btn primary" onclick="saveSale()">Confirmar venda</button></div>`);
  $("#f_product_id").addEventListener("change",calcSale);$("#f_qty").addEventListener("input",calcSale);calcSale()
 }
 function calcSale(){const p=find(db.products,$("#f_product_id").value);$("#saleTotal").textContent=money((p?.sale||0)*(parseInt($("#f_qty").value)||0))}
@@ -185,7 +185,7 @@ function saveSale(){
 function deleteSale(id){if(!confirm("Excluir a venda? O item voltará ao estoque e os pagamentos serão removidos."))return;db.saleItems.filter(x=>x.sale_id===id).forEach(it=>{const p=find(db.products,it.product_id);if(p)p.stock+=Number(it.qty)});db.saleItems=db.saleItems.filter(x=>x.sale_id!==id);db.payments=db.payments.filter(x=>x.sale_id!==id);db.sales=db.sales.filter(x=>x.id!==id);save();render();toast("Venda excluída")}
 function payment(id){
  const s=find(db.sales,id),bal=Math.max(0,s.total-s.paid);if(bal<=.005)return alert("Venda já quitada.");
- modal("Registrar pagamento",`<p>Saldo atual: <b>${money(bal)}</b></p><div class="grid2">${formField("Valor","amount",bal,"number")}${formField("Data","pay_date",today(),"date")}</div>`,`<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">Voltar</button><button class="btn primary" onclick="savePayment(${id})">Confirmar pagamento</button></div>`)
+ modal("Registrar pagamento",`<p>Saldo atual: <b>${money(bal)}</b></p><div class="grid2">${formField("Valor","amount",bal,"number")}${formField("Data","pay_date",today(),"date")}</div>`,`<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">Cancelar</button><button class="btn primary" onclick="savePayment(${id})">Confirmar pagamento</button></div>`)
 }
 function savePayment(id){const s=find(db.sales,id),bal=Math.max(0,s.total-s.paid),v=Number($("#f_amount").value)||0;if(v<=0||v>bal)return alert("Valor inválido.");s.paid+=v;db.payments.push({id:nextId(db.payments),sale_id:id,pay_date:$("#f_pay_date").value,amount:v});save();closeModal();render();toast("Pagamento registrado")}
 
@@ -194,7 +194,23 @@ function receivables(){
  const rows=open.sort((a,b)=>(a.due_date||"").localeCompare(b.due_date||"")).map(s=>{const c=find(db.clients,s.client_id),bal=s.total-s.paid,late=s.due_date&&s.due_date<today();return `<tr><td>${esc(c?.name||"Não informado")}</td><td>${s.sale_date}</td><td>${s.due_date||""}</td><td>${money(s.total)}</td><td>${money(s.paid)}</td><td class="money">${money(bal)}</td><td><span class="status ${late?"bad":"open"}">${late?"ATRASADO":"EM ABERTO"}</span></td><td><button class="icon-btn" onclick="event.stopPropagation();payment(${s.id})">Pagamento</button>${c?.phone?` <button class="icon-btn" onclick="whatsapp(${s.id})">WhatsApp</button>`:""}</td></tr>`});
  return pageHead("Contas a Receber") + `<div class="panel">${table(["Cliente","Venda","Vencimento","Total","Pago","Saldo","Status","Ações"],rows.join(""))}</div>`;
 }
-function whatsapp(id){const s=find(db.sales,id),c=find(db.clients,s.client_id),v=money(s.total-s.paid);let phone=(c.phone||"").replace(/\D/g,"");if(phone.length===10||phone.length===11)phone="55"+phone;if(phone.length<12)return alert("Telefone inválido.");const msg=`Oi ${c.name.split(" ")[0]}, tudo bem? Tem uma parcelinha sua de ${v} em aberto. Consegue me mandar?`;window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`,"_blank")}
+function whatsapp(id){
+ const s=find(db.sales,id),c=find(db.clients,s.client_id);
+ if(!c||!c.phone)return alert("Cliente sem telefone cadastrado.");
+ let phone=String(c.phone).replace(/\D/g,"");
+ // Aceita telefone brasileiro com ou sem DDD e com/sem 55. Remove zero de operadora quando existir.
+ if(phone.startsWith("0055")) phone=phone.slice(2);
+ if(phone.startsWith("55") && (phone.length===12||phone.length===13)) { /* já contém país */ }
+ else if(phone.length===10||phone.length===11) phone="55"+phone;
+ else if(phone.length===8||phone.length===9) phone="5567"+phone;
+ else if(phone.length>=12 && phone.length<=13 && !phone.startsWith("55")) phone="55"+phone;
+ else return alert("Telefone inválido. Cadastre com DDD, por exemplo: (67) 99999-9999.");
+ const v=money(Math.max(0,Number(s.total)-Number(s.paid||0)));
+ const first=(c.name||"cliente").trim().split(/\s+/)[0];
+ const msg=`Oi ${first}, tudo bem? Tem uma parcela sua de ${v} em aberto. Consegue me mandar?`;
+ const url=`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
+ window.location.href=url;
+}
 
 function suppliers(){
  const rows=db.suppliers.map(s=>`<tr ondblclick="supplierDetails(${s.id})"><td>${esc(s.name)}</td><td>${esc(s.phone)}</td><td>${esc(s.document)}</td><td>${esc(s.address)}</td><td><button class="icon-btn" onclick="event.stopPropagation();editSupplier(${s.id})">Editar</button> <button class="icon-btn" onclick="deleteSupplier(${s.id})">Excluir</button></td></tr>`);
@@ -205,8 +221,8 @@ function supplierDetails(id){
  const s=find(db.suppliers,id); if(!s)return; const buys=db.payables.filter(p=>Number(p.supplier_id)===Number(id)); const total=buys.reduce((a,p)=>a+Number(p.total||0),0),paid=buys.reduce((a,p)=>a+Number(p.paid||0),0);
  modal("Detalhes do fornecedor",`<div class="detail-grid"><p><b>Fornecedor:</b> ${esc(s.name||"")}</p><p><b>Telefone:</b> ${esc(s.phone||"")}</p><p><b>CPF/CNPJ:</b> ${esc(s.document||"")}</p><p><b>Endereço:</b> ${esc(s.address||"")}</p><p><b>Compras/contas:</b> ${buys.length}</p><p><b>Total:</b> ${money(total)}</p><p><b>Pago:</b> ${money(paid)}</p><p><b>Em aberto:</b> ${money(Math.max(0,total-paid))}</p><p><b>Observações:</b> ${esc(s.notes||"")}</p></div>`,`<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">Fechar</button><button class="btn primary" onclick="closeModal();editSupplier(${id})">Editar</button></div>`)
 }
-function newSupplier(){modal("Novo fornecedor",supplierForm(),`<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">Voltar</button><button class="btn primary" onclick="saveSupplier()">Salvar</button></div>`)}
-function editSupplier(id){modal("Editar fornecedor",supplierForm(find(db.suppliers,id)),`<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">Voltar</button><button class="btn primary" onclick="saveSupplier(${id})">Salvar</button></div>`)}
+function newSupplier(){modal("Novo fornecedor",supplierForm(),`<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">Cancelar</button><button class="btn primary" onclick="saveSupplier()">Salvar</button></div>`)}
+function editSupplier(id){modal("Editar fornecedor",supplierForm(find(db.suppliers,id)),`<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">Cancelar</button><button class="btn primary" onclick="saveSupplier(${id})">Salvar</button></div>`)}
 function saveSupplier(id){const v=n=>$("#f_"+n).value.trim(),s=find(db.suppliers,id)||{id:nextId(db.suppliers)};Object.assign(s,{name:v("name"),phone:v("phone"),document:v("document"),address:v("address"),notes:$("#f_notes").value});if(!s.name)return alert("Informe o nome.");if(!id)db.suppliers.push(s);save();closeModal();render();toast("Fornecedor salvo")}
 function deleteSupplier(id){if(db.payables.some(p=>p.supplier_id===id))return alert("Este fornecedor possui contas registradas.");if(confirm("Excluir fornecedor?")){db.suppliers=db.suppliers.filter(x=>x.id!==id);save();render()}}
 
@@ -229,8 +245,8 @@ function payableForm(p={},isEdit=false){
  const installments=p.installments||1;
  return `<div class="grid2">${selectField("Fornecedor","supplier_id",opts,p.supplier_id)}${formField("Descrição","description",p.description)}${formField("Vencimento da 1ª parcela","due_date",p.due_date||today(),"date")}${formField("Total da compra","total",p.installments_total||p.total||0,"number")}${isEdit?formField("Parcela atual","installments",installments,"number"):selectField("Número de parcelas","installments",[["1","1x"],["2","2x"],["3","3x"],["4","4x"],["5","5x"],["6","6x"]],installments)}</div><div class="hint" style="margin-top:8px">${isEdit?"Cada parcela é controlada separadamente em A Pagar.":"O total será dividido automaticamente e cada parcela terá vencimento mensal."}</div>`
 }
-function newPayable(){if(!db.suppliers.length)return alert("Cadastre um fornecedor primeiro.");modal("Nova compra / conta a pagar",payableForm(),`<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">Voltar</button><button class="btn primary" onclick="savePayable()">Salvar compra</button></div>`)}
-function editPayable(id){modal("Editar conta",payableForm(find(db.payables,id),true),`<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">Voltar</button><button class="btn primary" onclick="savePayable(${id})">Salvar</button></div>`)}
+function newPayable(){if(!db.suppliers.length)return alert("Cadastre um fornecedor primeiro.");modal("Nova compra / conta a pagar",payableForm(),`<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">Cancelar</button><button class="btn primary" onclick="savePayable()">Salvar compra</button></div>`)}
+function editPayable(id){modal("Editar conta",payableForm(find(db.payables,id),true),`<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">Cancelar</button><button class="btn primary" onclick="savePayable(${id})">Salvar</button></div>`)}
 function savePayable(id){
  const supplierId=Number($("#f_supplier_id").value)||null, description=$("#f_description").value.trim(), firstDue=$("#f_due_date").value, total=Number($("#f_total").value)||0, installments=Math.max(1,parseInt($("#f_installments").value)||1);
  if(!supplierId||!description||total<=0||!firstDue)return alert("Preencha os dados.");
@@ -247,9 +263,9 @@ function savePayable(id){
  }
  save();closeModal();render();toast(installments>1?`${installments} parcelas lançadas em A Pagar`:'Conta salva');
 }
-function supplierPayment(id){const p=find(db.payables,id),bal=p.total-p.paid;modal("Registrar pagamento",`<p>Saldo: <b>${money(bal)}</b></p><div class="grid2">${formField("Valor","amount",bal,"number")}${formField("Data","pay_date",today(),"date")}</div>`,`<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">Voltar</button><button class="btn primary" onclick="saveSupplierPayment(${id})">Confirmar</button></div>`)}
+function supplierPayment(id){const p=find(db.payables,id),bal=p.total-p.paid;modal("Registrar pagamento",`<p>Saldo: <b>${money(bal)}</b></p><div class="grid2">${formField("Valor","amount",bal,"number")}${formField("Data","pay_date",today(),"date")}</div>`,`<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">Cancelar</button><button class="btn primary" onclick="saveSupplierPayment(${id})">Confirmar</button></div>`)}
 function saveSupplierPayment(id){const p=find(db.payables,id),bal=p.total-p.paid,v=Number($("#f_amount").value)||0;if(v<=0||v>bal)return alert("Valor inválido.");p.paid+=v;db.supplierPayments.push({id:nextId(db.supplierPayments),payable_id:id,pay_date:$("#f_pay_date").value,amount:v});save();closeModal();render();toast("Pagamento registrado")}
-function withdrawal(){modal("Saque",`<div class="grid2">${formField("Data","withdraw_date",today(),"date")}${formField("Valor","amount",0,"number")}</div>${formField("Descrição","description","")}`,`<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">Voltar</button><button class="btn primary" onclick="saveWithdrawal()">Registrar</button></div>`)}
+function withdrawal(){modal("Saque",`<div class="grid2">${formField("Data","withdraw_date",today(),"date")}${formField("Valor","amount",0,"number")}</div>${formField("Descrição","description","")}`,`<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">Cancelar</button><button class="btn primary" onclick="saveWithdrawal()">Registrar</button></div>`)}
 function saveWithdrawal(){const v=Number($("#f_amount").value)||0;if(v<=0)return alert("Informe o valor.");db.withdrawals.push({id:nextId(db.withdrawals),withdraw_date:$("#f_withdraw_date").value,description:$("#f_description").value,amount:v});save();closeModal();render();toast("Saque registrado")}
 
 function finished(){
