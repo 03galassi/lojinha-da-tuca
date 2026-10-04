@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LOJINHA DA TUCA</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="brand" id="brand" title="Clique duas vezes para editar">
+      <img src="assets/tuca.png" alt="Tuca">
+      <div><div id="appTitle">LOJINHA DA TUCA</div><small>Gestão da loja</small></div>
+    </div>
+    <div class="top-actions">
+      <button class="btn ghost" id="backupBtn">Exportar backup</button>
+      <label class="btn ghost file-btn">Importar backup<input type="file" id="restoreFile" accept=".json"></label>
+      <button class="btn danger" id="resetBtn">Limpar dados</button>
+    </div>
+  </header>
+
+  <nav class="tabs" id="tabs">
+    <button data-page="dashboard" class="active">🏠 Início</button>
+    <button data-page="products">👕 Produtos</button>
+    <button data-page="clients">👥 Clientes</button>
+    <button data-page="sales">🛒 Vendas</button>
+    <button data-page="receivables">💰 A Receber</button>
+    <button data-page="suppliers">🏭 Fornecedores</button>
+    <button data-page="payables">💳 A Pagar</button>
+    <button data-page="finished">✅ Finalizadas</button>
+    <button data-page="reports">📊 Relatórios</button>
+  </nav>
+
+  <main id="content"></main>
+</div>
+
+<div class="modal hidden" id="modal"><div class="modal-card" id="modalCard"></div></div>
+<div class="toast" id="toast"></div>
+<script src="app.js"></script>
+</body>
+</html>
