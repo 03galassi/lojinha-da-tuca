@@ -52,35 +52,50 @@ function render(){
 }
 $("#tabs").addEventListener("click",e=>{const b=e.target.closest("button[data-page]");if(b){page=b.dataset.page;render()}});
 
+function dashIcon(type){
+ const common='viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"';
+ const m={
+  sale:`<svg ${common}><rect x="7" y="9" width="34" height="31" rx="4"/><path d="M14 5v8M34 5v8M7 18h34M14 25l4 4 8-9"/></svg>`,
+  products:`<svg ${common}><path d="M6 15 24 6l18 9-18 9L6 15Z"/><path d="M6 15v18l18 9 18-9V15M24 24v18"/></svg>`,
+  clients:`<svg ${common}><circle cx="18" cy="16" r="7"/><circle cx="34" cy="19" r="5"/><path d="M6 39c1-8 6-12 12-12s11 4 12 12M29 29c6 0 10 3 12 9"/>`,
+  sales:`<svg ${common}><circle cx="17" cy="39" r="3"/><circle cx="37" cy="39" r="3"/><path d="M5 8h6l4 22h22l5-17H13"/></svg>`,
+  receive:`<svg ${common}><path d="M24 6c-9 0-15 6-15 13 0 10 15 23 15 23s15-13 15-23C39 12 33 6 24 6Z"/><path d="M29 16c-1-2-3-3-6-3-3 0-5 2-5 4 0 6 11 3 11 9 0 2-2 4-5 4-3 0-5-1-6-3M24 10v25"/>`,
+  pay:`<svg ${common}><rect x="5" y="10" width="38" height="27" rx="4"/><path d="M5 18h38M11 28h12"/></svg>`,
+  supplier:`<svg ${common}><path d="M5 12h24v24H5zM29 21h8l6 7v8H29z"/><circle cx="13" cy="39" r="3"/><circle cx="35" cy="39" r="3"/><path d="M11 17h12"/>`,
+  finished:`<svg ${common}><circle cx="24" cy="24" r="18"/><path d="m15 24 6 6 12-13"/></svg>`,
+  reports:`<svg ${common}><path d="M7 40V27M18 40V17M30 40V10M41 40V5"/><path d="M4 40h40"/>`
+ };
+ return m[type]||'';
+}
 function dashboard(){
  const stock=db.products.reduce((s,p)=>s+Number(p.stock||0),0);
  const stockValue=db.products.reduce((s,p)=>s+Number(p.stock||0)*Number(p.sale||0),0);
  const receivable=db.sales.reduce((s,x)=>s+Math.max(0,Number(x.total)-Number(x.paid||0)),0);
  const payable=db.payables.reduce((s,x)=>s+Math.max(0,Number(x.total)-Number(x.paid||0)),0);
- const overdue=db.sales.filter(x=>x.due_date&&x.due_date<today()&&Number(x.total)>Number(x.paid||0)).reduce((s,x)=>s+Number(x.total)-Number(x.paid||0),0);
  const todaySales=db.sales.filter(x=>x.sale_date===today()).reduce((s,x)=>s+Number(x.total||0),0);
  const monthKey=today().slice(0,7);
  const monthSales=db.sales.filter(x=>(x.sale_date||'').slice(0,7)===monthKey).reduce((s,x)=>s+Number(x.total||0),0);
- return `<section class="mobile-home-intro"><div class="intro-title">Olá, Galassi!</div><div class="intro-sub">Veja um resumo da sua loja hoje.</div><div class="intro-date">🛍️ 📅 ${new Date().toLocaleDateString('pt-BR')}</div></section>`+
- `<div class="page-head desktop-head"><h1>Painel da loja</h1><div class="actions"><button class="btn primary" onclick="newSale()">+ Nova venda</button></div></div>`+
- `<div class="mobile-page-head"><h1>Painel da loja</h1><button class="btn primary" onclick="newSale()">+ Nova venda</button></div>`+
- `<div class="cards dashboard-cards">
- <div class="card metric-sale"><div class="metric-icon">🛒</div><div class="label">Vendas hoje</div><div class="value">${money(todaySales)}</div><div class="metric-note">${db.sales.filter(x=>x.sale_date===today()).length} venda(s)</div></div>
- <div class="card metric-clients"><div class="metric-icon">👥</div><div class="label">Clientes</div><div class="value">${db.clients.length}</div><div class="metric-note">cadastrados</div></div>
- <div class="card metric-products"><div class="metric-icon">📦</div><div class="label">Produtos</div><div class="value">${stock}</div><div class="metric-note">em estoque</div></div>
- <div class="card metric-receive"><div class="metric-icon">💵</div><div class="label">A receber</div><div class="value">${money(receivable)}</div><div class="metric-note">em aberto</div></div>
- <div class="card metric-pay"><div class="metric-icon">🚚</div><div class="label">A pagar</div><div class="value">${money(payable)}</div><div class="metric-note">contas em aberto</div></div>
- <div class="card metric-month"><div class="metric-icon">📊</div><div class="label">Vendas mês</div><div class="value">${money(monthSales)}</div><div class="metric-note">${db.sales.filter(x=>(x.sale_date||'').slice(0,7)===monthKey).length} venda(s)</div></div>
- </div>
- <div class="panel shortcuts-panel"><h3>Atalhos</h3><div class="actions shortcuts-actions">
- <button class="btn ghost" onclick="go('products')">Cadastrar produto</button>
- <button class="btn ghost" onclick="go('clients')">Cadastrar cliente</button>
- <button class="btn ghost" onclick="go('suppliers')">Cadastrar fornecedor</button>
- <button class="btn ghost" onclick="go('payables')">Nova conta a pagar</button>
- <button class="btn ghost" onclick="go('reports')">Ver relatório</button>
- </div></div>
- <div class="mobile-balance"><span>Valor do estoque (venda)</span><strong>${money(stockValue)}</strong><span class="desktop-only"> • Em atraso: ${money(overdue)}</span></div>
- <div class="panel recent-panel"><h3>Últimas vendas</h3>${recentSales()}</div>`;
+ const shortcuts=[
+  ['sale','NOVA VENDA',"newSale()"],['products','PRODUTOS',"go('products')"],['clients','CLIENTES',"go('clients')"],
+  ['sales','VENDAS',"go('sales')"],['receive','A RECEBER',"go('receivables')"],['pay','A PAGAR',"go('payables')"],
+  ['supplier','FORNECEDORES',"go('suppliers')"],['finished','FINALIZADAS',"go('finished')"],['reports','RELATÓRIOS',"go('reports')"]
+ ];
+ const tiles=shortcuts.map(x=>`<button class="home-tile" onclick="${x[2]}"><span class="home-tile-icon">${dashIcon(x[0])}</span><span>${x[1]}</span></button>`).join('');
+ return `<div class="home-layout">
+   <section class="home-welcome"><div><strong>LOJINHA DA TUCA</strong><small>Gestão da loja</small></div><div class="home-date">${new Date().toLocaleDateString('pt-BR')}</div></section>
+   <div class="home-action"><button class="btn primary" onclick="newSale()">+ Nova venda</button></div>
+   <section class="home-shortcuts">${tiles}</section>
+   <section class="home-panel-title"><h1>Painel da loja</h1></section>
+   <section class="home-metrics">
+    <button class="home-metric metric-sale" onclick="go('sales')"><span><b>Vendas hoje</b><strong>${money(todaySales)}</strong></span><i>${dashIcon('sales')}</i></button>
+    <button class="home-metric metric-clients" onclick="go('clients')"><span><b>Clientes</b><strong>${db.clients.length}</strong></span><i>${dashIcon('clients')}</i></button>
+    <button class="home-metric metric-products" onclick="go('products')"><span><b>Produtos</b><strong>${stock}</strong></span><i>${dashIcon('products')}</i></button>
+    <button class="home-metric metric-receive" onclick="go('receivables')"><span><b>A receber</b><strong>${money(receivable)}</strong></span><i>${dashIcon('receive')}</i></button>
+    <button class="home-metric metric-pay" onclick="go('payables')"><span><b>A pagar</b><strong>${money(payable)}</strong></span><i>${dashIcon('pay')}</i></button>
+    <button class="home-metric metric-month" onclick="go('sales')"><span><b>Vendas mês</b><strong>${money(monthSales)}</strong></span><i>${dashIcon('reports')}</i></button>
+   </section>
+   <div class="home-stock"><span>Valor do estoque (preço de venda)</span><strong>${money(stockValue)}</strong></div>
+ </div>`;
 }
 function go(p){page=p;render()}
 function recentSales(){

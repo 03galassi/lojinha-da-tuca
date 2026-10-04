@@ -1,11 +1,11 @@
 {
-  "name": "Lojinha da Tuca",
-  "short_name": "Tuca",
-  "start_url": "./",
-  "display": "standalone",
-  "background_color": "#8f8f8f",
-  "theme_color": "#ffffff",
-  "icons": [
+  "name":"Lojinha da Tuca",
+  "short_name":"Tuca",
+  "start_url":"./",
+  "display":"standalone",
+  "background_color":"#10002b",
+  "theme_color":"#16003d",
+  "icons":[
     {"src":"assets/tuca.png","sizes":"192x192","type":"image/png","purpose":"any maskable"},
     {"src":"assets/tuca.png","sizes":"512x512","type":"image/png","purpose":"any maskable"}
   ]
