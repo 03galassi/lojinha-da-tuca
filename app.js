@@ -41,7 +41,7 @@ function decorateTables(){
 function syncMobileMenu(){
   const menu=$('#mobileMenu'); if(!menu)return;
   const labels=[...document.querySelectorAll('#tabs button')];
-  menu.innerHTML=labels.map(b=>`<button class="${b.dataset.page===page?'active':''}" data-page="${b.dataset.page}">${b.textContent}</button>`).join('');
+  menu.innerHTML=labels.map((b,i)=>`<button class="mobile-nav-item mobile-nav-${i%6} ${b.dataset.page===page?'active':''}" data-page="${b.dataset.page}">${b.textContent}<span class="mobile-nav-arrow">›</span></button>`).join('');
 }
 function closeMobileMenu(){ $('#mobileDrawer')?.classList.add('hidden'); }
 function render(){
@@ -170,7 +170,7 @@ function newSale(){
  if(!db.products.some(p=>p.stock>0))return alert("Não há produtos disponíveis para venda.");
  const clients=[["","Selecione..."],...db.clients.map(c=>[c.id,c.name])];
  const prods=[...db.products.filter(p=>p.stock>0).map(p=>[p.id,`${p.description} / ${p.size||"-"} — ${money(p.sale)} — estoque ${p.stock}`])];
- modal("Nova venda",`<div class="grid2">${selectField("Cliente","client_id",clients)}${selectField("Produto","product_id",prods)}${formField("Quantidade","qty",1,"number")}${selectField("Pagamento","payment",[["À vista","À vista"],["Crédito","Crédito"],["PIX","PIX"],["Cartão","Cartão"],["Outro","Outro"]])}${formField("Parcelas","installments",1,"number")}${formField("Vencimento","due_date",today(),"date")}</div><div class="panel" style="margin-top:12px"><b>Total: <span id="saleTotal">${money(0)}</span></b></div>`, `<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">Cancelar</button><button class="btn primary" onclick="saveSale()">Confirmar venda</button></div>`);
+ modal("Nova venda",`<div class="grid2">${selectField("Cliente","client_id",clients)}${selectField("Produto","product_id",prods)}${formField("Quantidade","qty",1,"number")}${selectField("Pagamento","payment",[["À vista","À vista"],["Crédito","Crédito"],["PIX","PIX"],["Cartão","Cartão"],["Outro","Outro"]])}${selectField("Parcelas","installments",[["1","1x"],["2","2x"],["3","3x"],["4","4x"],["5","5x"],["6","6x"]],1)}${formField("Vencimento","due_date",today(),"date")}</div><div class="panel" style="margin-top:12px"><b>Total: <span id="saleTotal">${money(0)}</span></b></div>`, `<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">Cancelar</button><button class="btn primary" onclick="saveSale()">Confirmar venda</button></div>`);
  $("#f_product_id").addEventListener("change",calcSale);$("#f_qty").addEventListener("input",calcSale);calcSale()
 }
 function calcSale(){const p=find(db.products,$("#f_product_id").value);$("#saleTotal").textContent=money((p?.sale||0)*(parseInt($("#f_qty").value)||0))}
@@ -227,7 +227,7 @@ function addMonths(dateStr, months){
 function payableForm(p={},isEdit=false){
  const opts=[["","Selecione..."],...db.suppliers.map(s=>[s.id,s.name])];
  const installments=p.installments||1;
- return `<div class="grid2">${selectField("Fornecedor","supplier_id",opts,p.supplier_id)}${formField("Descrição","description",p.description)}${formField("Vencimento da 1ª parcela","due_date",p.due_date||today(),"date")}${formField("Total da compra","total",p.installments_total||p.total||0,"number")}${formField(isEdit?"Parcela atual":"Número de parcelas","installments",installments,"number")}</div><div class="hint" style="margin-top:8px">${isEdit?"Cada parcela é controlada separadamente em A Pagar.":"O total será dividido automaticamente e cada parcela terá vencimento mensal."}</div>`
+ return `<div class="grid2">${selectField("Fornecedor","supplier_id",opts,p.supplier_id)}${formField("Descrição","description",p.description)}${formField("Vencimento da 1ª parcela","due_date",p.due_date||today(),"date")}${formField("Total da compra","total",p.installments_total||p.total||0,"number")}${isEdit?formField("Parcela atual","installments",installments,"number"):selectField("Número de parcelas","installments",[["1","1x"],["2","2x"],["3","3x"],["4","4x"],["5","5x"],["6","6x"]],installments)}</div><div class="hint" style="margin-top:8px">${isEdit?"Cada parcela é controlada separadamente em A Pagar.":"O total será dividido automaticamente e cada parcela terá vencimento mensal."}</div>`
 }
 function newPayable(){if(!db.suppliers.length)return alert("Cadastre um fornecedor primeiro.");modal("Nova compra / conta a pagar",payableForm(),`<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">Cancelar</button><button class="btn primary" onclick="savePayable()">Salvar compra</button></div>`)}
 function editPayable(id){modal("Editar conta",payableForm(find(db.payables,id),true),`<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">Cancelar</button><button class="btn primary" onclick="savePayable(${id})">Salvar</button></div>`)}
