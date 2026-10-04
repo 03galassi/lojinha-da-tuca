@@ -65,3 +65,60 @@ input,select,textarea{width:100%;border:1px solid #cfd8dc;border-radius:7px;padd
   .mobile-drawer-head{background:#ff3d86}
 }
 @media(min-width:801px){.mobile-home-intro{display:none}}
+
+/* V8 — mobile target layout: explicit override */
+@media (max-width: 800px){
+ html,body{width:100%;margin:0;padding:0;overflow-x:hidden;background:#f6f8fa!important;font-family:Arial,Helvetica,sans-serif!important;color:#263238!important}
+ .app{width:100%;max-width:none;overflow:hidden}
+ .topbar{display:flex!important;width:100%!important;box-sizing:border-box!important;height:88px!important;padding:12px 18px!important;background:#fff!important;position:relative!important;top:auto!important;box-shadow:0 1px 3px rgba(0,0,0,.08)!important}
+ .brand{display:flex!important;align-items:center!important;gap:10px!important;flex:1!important;min-width:0!important}
+ .brand img{display:block!important;width:58px!important;height:58px!important;object-fit:contain!important;border-radius:0!important}
+ .brand #appTitle{font-size:19px!important;line-height:1.08!important;font-weight:800!important;color:#263238!important}
+ .brand small{display:block!important;font-size:13px!important;color:#78909c!important;margin-top:4px!important}
+ .top-actions{display:none!important}
+ .mobile-menu-btn{display:flex!important;align-items:center!important;justify-content:center!important;flex:0 0 52px!important;width:52px!important;height:52px!important;margin:0!important;background:#ff3d86!important;color:#fff!important;border:0!important;border-radius:14px!important;font-size:28px!important;box-shadow:none!important}
+ .tabs{display:none!important}
+ main{display:block!important;width:100%!important;box-sizing:border-box!important;padding:0 18px 30px!important}
+ .mobile-home-intro{display:none!important}
+ .desktop-head{display:none!important}
+ .mobile-page-head{display:flex!important;align-items:center!important;justify-content:space-between!important;margin:28px 0 16px!important}
+ .mobile-page-head h1{font-size:25px!important;font-weight:800!important;margin:0!important}
+ .mobile-page-head .btn{font-size:15px!important;font-weight:700!important;padding:13px 15px!important;border-radius:11px!important;white-space:nowrap!important}
+ .dashboard-cards{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:14px!important;margin:0 0 14px!important}
+ .dashboard-cards .card{display:block!important;box-sizing:border-box!important;min-width:0!important;min-height:128px!important;padding:18px!important;border-radius:17px!important;background:#fff!important;border:1px solid #e1e6e9!important;box-shadow:none!important}
+ .dashboard-cards .metric-icon{display:none!important}
+ .dashboard-cards .label{font-size:14px!important;color:#78909c!important;margin:0 0 10px!important}
+ .dashboard-cards .value{font-size:23px!important;font-weight:800!important;line-height:1.15!important;color:#263238!important}
+ .dashboard-cards .metric-sale,.dashboard-cards .metric-clients,.dashboard-cards .metric-products,.dashboard-cards .metric-receive,.dashboard-cards .metric-pay,.dashboard-cards .metric-month{background:#fff!important}
+ .dashboard-cards .metric-receive .value{color:#263238!important}
+ .dashboard-cards .metric-pay .value{color:#263238!important}
+ .dashboard-cards .metric-note{display:none!important}
+ .mobile-balance{display:none!important}
+ .shortcuts-panel{margin-top:12px!important;background:#fff!important;border:1px solid #e0e6e9!important;border-radius:17px!important;padding:16px!important}
+ .shortcuts-panel h3{font-size:22px!important;margin:4px 0 16px!important}
+ .shortcuts-actions{display:grid!important;grid-template-columns:1fr 1fr!important;gap:10px!important}
+ .shortcuts-actions .btn{min-height:52px!important;padding:10px 8px!important;font-size:15px!important;font-weight:700!important;background:#edf2f4!important;border:0!important;border-radius:10px!important}
+ .recent-panel{display:none!important}
+ .page-head{display:flex!important;align-items:center!important;justify-content:space-between!important;margin:28px 0 14px!important}
+ .page-head h1{font-size:24px!important;margin:0!important}
+ .page-head .actions{display:flex!important}
+ .page-head .actions .btn{background:#ff3d86!important;color:#fff!important;border:0!important}
+ .panel{background:#fff!important;border:1px solid #e0e6e9!important;border-radius:16px!important;padding:12px!important;box-shadow:none!important}
+ .table-wrap{overflow:visible!important}
+ table.table{display:block!important;width:100%!important;min-width:0!important}
+ table.table thead{display:none!important}
+ table.table tbody,table.table tr{display:block!important;width:100%!important}
+ table.table tbody tr{box-sizing:border-box!important;background:#fff!important;border:1px solid #e2e7ea!important;border-radius:14px!important;margin:0 0 10px!important;padding:10px!important}
+ table.table td{display:flex!important;justify-content:space-between!important;gap:10px!important;padding:8px 2px!important;text-align:right!important;border-bottom:1px solid #eef1f3!important;white-space:normal!important}
+ table.table td:last-child{border-bottom:0!important}
+ table.table td:before{content:attr(data-label)!important;display:block!important;flex:0 0 42%!important;text-align:left!important;color:#78909c!important;font-size:11px!important;font-weight:700!important}
+ .modal{padding:8px!important}
+ .modal-card{width:100%!important;max-width:none!important;border-radius:18px 18px 0 0!important}
+ .mobile-drawer{display:block!important;position:fixed!important;inset:0!important;width:100%!important;background:#fff!important;z-index:9999!important;transform:translateX(100%)!important;transition:transform .22s ease!important}
+ .mobile-drawer:not(.hidden){transform:translateX(0)!important}
+ .mobile-drawer-head{height:88px!important;padding:12px 18px!important;background:#ff3d86!important;color:#fff!important}
+ .mobile-drawer-head b{font-size:19px!important}
+ .mobile-menu{padding:12px 18px!important}
+ .mobile-menu button{padding:14px 15px!important;margin:4px 0!important;font-size:17px!important;border-radius:12px!important}
+ .mobile-tools{padding:14px 18px!important}
+}
