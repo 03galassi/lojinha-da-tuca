@@ -40,3 +40,28 @@ input,select,textarea{width:100%;border:1px solid #cfd8dc;border-radius:7px;padd
   .mobile-menu{padding:10px 12px}.mobile-menu button{display:flex;width:100%;border:0;background:#fff;border-radius:11px;padding:13px 14px;margin:3px 0;font-size:16px;text-align:left;color:#263238;cursor:pointer}.mobile-menu button.active{background:#ffe6ef;color:#e91e63;font-weight:700}.mobile-tools{border-top:1px solid #e9edef;padding:12px;display:grid;gap:8px}.mobile-tools .btn{width:100%;text-align:center;padding:12px}
 }
 @media(min-width:801px){.mobile-menu-btn{display:none}}
+
+/* V7 — mobile fiel ao modelo aprovado */
+.mobile-home-intro,.mobile-page-head,.mobile-balance{display:none}
+@media(max-width:800px){
+  .topbar{height:92px;padding:12px 16px;box-shadow:0 1px 0 #e6eaed}
+  .brand img{width:58px;height:58px}.brand #appTitle{font-size:19px;font-weight:800}.brand small{font-size:13px}
+  .mobile-menu-btn{width:52px;height:52px;border-radius:15px;background:#ff3d86;font-size:27px;box-shadow:none}
+  main{padding:0 18px 28px}
+  .mobile-home-intro{display:block;background:#ffeaf2;border-radius:14px;padding:16px;margin:14px 0 12px}
+  .intro-title{font-size:20px;font-weight:800;margin-bottom:4px}.intro-sub{font-size:14px}.intro-date{font-size:12px;color:#607d8b;margin-top:10px}
+  .desktop-head{display:none}.mobile-page-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:8px 0 16px}.mobile-page-head h1{margin:0;font-size:23px}.mobile-page-head .btn{padding:11px 13px;border-radius:10px;font-size:14px}
+  .dashboard-cards{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:14px}
+  .dashboard-cards .card{min-height:128px;padding:14px 15px;border-radius:15px;border:0;position:relative;box-shadow:none}
+  .dashboard-cards .card .metric-icon{font-size:24px;margin-bottom:7px}.dashboard-cards .card .label{font-size:12px;color:#455a64}.dashboard-cards .card .value{font-size:20px;margin-top:4px}.metric-note{font-size:11px;color:#607d8b;margin-top:3px}
+  .metric-sale{background:#dff7e8}.metric-clients{background:#dcefff}.metric-products{background:#fff1bd}.metric-receive{background:#ffe1e1}.metric-pay{background:#eadfff}.metric-month{background:#e4edf2}
+  .metric-sale .value{color:#137a45}.metric-clients .value{color:#1976d2}.metric-products .value{color:#a06a00}.metric-receive .value{color:#c62828}.metric-pay .value{color:#6a45a8}
+  .mobile-balance{display:flex;justify-content:space-between;align-items:center;background:#fff;border:1px solid #e0e6e9;border-radius:12px;padding:12px 14px;margin-bottom:14px;font-size:12px;color:#607d8b}.mobile-balance strong{font-size:15px;color:#263238}
+  .shortcuts-panel{padding:14px;border-radius:16px}.shortcuts-panel h3{font-size:20px;margin:4px 0 14px}.shortcuts-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}.shortcuts-actions .btn{min-height:50px;padding:10px 9px;font-size:14px;border-radius:10px;background:#edf2f4}
+  .recent-panel{margin-top:12px}.recent-panel h3{font-size:19px}
+  /* Product/client/sales pages use the same clean mobile header */
+  .page-head{display:flex;align-items:center;margin:6px 0 12px}.page-head h1{font-size:22px}.page-head .actions .btn{background:#ff3d86;color:#fff;border-radius:10px}
+  .panel{border-radius:14px}.table tbody tr{box-shadow:0 2px 8px #2632380a}
+  .mobile-drawer-head{background:#ff3d86}
+}
+@media(min-width:801px){.mobile-home-intro{display:none}}

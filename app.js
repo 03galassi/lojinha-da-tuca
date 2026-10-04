@@ -58,22 +58,29 @@ function dashboard(){
  const receivable=db.sales.reduce((s,x)=>s+Math.max(0,Number(x.total)-Number(x.paid||0)),0);
  const payable=db.payables.reduce((s,x)=>s+Math.max(0,Number(x.total)-Number(x.paid||0)),0);
  const overdue=db.sales.filter(x=>x.due_date&&x.due_date<today()&&Number(x.total)>Number(x.paid||0)).reduce((s,x)=>s+Number(x.total)-Number(x.paid||0),0);
- return pageHead("Painel da loja",`<button class="btn primary" onclick="newSale()">+ Nova venda</button>`) +
- `<div class="cards">
- <div class="card"><div class="label">Itens em estoque</div><div class="value">${stock}</div></div>
- <div class="card"><div class="label">Valor de venda do estoque</div><div class="value">${money(stockValue)}</div></div>
- <div class="card"><div class="label">Total a receber</div><div class="value">${money(receivable)}</div></div>
- <div class="card"><div class="label">Total a pagar</div><div class="value">${money(payable)}</div></div>
- <div class="card alert"><div class="label">Em atraso</div><div class="value">${money(overdue)}</div></div>
+ const todaySales=db.sales.filter(x=>x.sale_date===today()).reduce((s,x)=>s+Number(x.total||0),0);
+ const monthKey=today().slice(0,7);
+ const monthSales=db.sales.filter(x=>(x.sale_date||'').slice(0,7)===monthKey).reduce((s,x)=>s+Number(x.total||0),0);
+ return `<section class="mobile-home-intro"><div class="intro-title">Olá, Galassi!</div><div class="intro-sub">Veja um resumo da sua loja hoje.</div><div class="intro-date">🛍️ 📅 ${new Date().toLocaleDateString('pt-BR')}</div></section>`+
+ `<div class="page-head desktop-head"><h1>Painel da loja</h1><div class="actions"><button class="btn primary" onclick="newSale()">+ Nova venda</button></div></div>`+
+ `<div class="mobile-page-head"><h1>Painel da loja</h1><button class="btn primary" onclick="newSale()">+ Nova venda</button></div>`+
+ `<div class="cards dashboard-cards">
+ <div class="card metric-sale"><div class="metric-icon">🛒</div><div class="label">Vendas hoje</div><div class="value">${money(todaySales)}</div><div class="metric-note">${db.sales.filter(x=>x.sale_date===today()).length} venda(s)</div></div>
+ <div class="card metric-clients"><div class="metric-icon">👥</div><div class="label">Clientes</div><div class="value">${db.clients.length}</div><div class="metric-note">cadastrados</div></div>
+ <div class="card metric-products"><div class="metric-icon">📦</div><div class="label">Produtos</div><div class="value">${stock}</div><div class="metric-note">em estoque</div></div>
+ <div class="card metric-receive"><div class="metric-icon">💵</div><div class="label">A receber</div><div class="value">${money(receivable)}</div><div class="metric-note">em aberto</div></div>
+ <div class="card metric-pay"><div class="metric-icon">🚚</div><div class="label">A pagar</div><div class="value">${money(payable)}</div><div class="metric-note">contas em aberto</div></div>
+ <div class="card metric-month"><div class="metric-icon">📊</div><div class="label">Vendas mês</div><div class="value">${money(monthSales)}</div><div class="metric-note">${db.sales.filter(x=>(x.sale_date||'').slice(0,7)===monthKey).length} venda(s)</div></div>
  </div>
- <div class="panel"><h3>Atalhos</h3><div class="actions">
+ <div class="mobile-balance"><span>Valor do estoque (venda)</span><strong>${money(stockValue)}</strong><span class="desktop-only"> • Em atraso: ${money(overdue)}</span></div>
+ <div class="panel shortcuts-panel"><h3>Atalhos</h3><div class="actions shortcuts-actions">
  <button class="btn ghost" onclick="go('products')">Cadastrar produto</button>
  <button class="btn ghost" onclick="go('clients')">Cadastrar cliente</button>
  <button class="btn ghost" onclick="go('suppliers')">Cadastrar fornecedor</button>
  <button class="btn ghost" onclick="go('payables')">Nova conta a pagar</button>
  <button class="btn ghost" onclick="go('reports')">Ver relatório</button>
  </div></div>
- <div class="panel"><h3>Últimas vendas</h3>${recentSales()}</div>`;
+ <div class="panel recent-panel"><h3>Últimas vendas</h3>${recentSales()}</div>`;
 }
 function go(p){page=p;render()}
 function recentSales(){
