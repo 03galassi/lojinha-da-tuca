@@ -101,7 +101,7 @@ function dashboard(){
    <section class="home-welcome"><div><strong>LOJINHA DA TUCA</strong><small>Gestão da loja</small></div><div class="home-date">${new Date().toLocaleDateString('pt-BR')}</div></section>
    <div class="home-action"><button class="btn primary" onclick="newSale()">+ Nova venda</button></div>
    <section class="home-shortcuts">${tiles}</section>
-   <section class="home-panel-title"><h1>Painel da loja</h1></section>
+   <button class="home-panel-title home-report-link" onclick="go('reports')"><h1>Painel da loja</h1><span>Ver relatório completo →</span></button>
    <section class="home-metrics">
     <button class="home-metric metric-sale" onclick="go('sales')"><span><b>Vendas hoje</b><strong>${money(todaySales)}</strong></span><i>${dashIcon('sales')}</i></button>
     <button class="home-metric metric-clients" onclick="go('clients')"><span><b>Clientes</b><strong>${db.clients.length}</strong></span><i>${dashIcon('clients')}</i></button>
@@ -316,18 +316,27 @@ function reports(){
  const pay=db.payables.reduce((s,p)=>s+Math.max(0,Number(p.total||0)-Number(p.paid||0)),0);
  const resultado=stock+rec-pay;
  const withdraw=db.withdrawals.reduce((s,x)=>s+Number(x.amount||0),0);
- return pageHead("Relatórios",`<button class="btn ghost" onclick="exportCsv()">Exportar CSV</button>`) + `<div class="panel">${table(["INDICADOR","VALOR"],`
- <tr><td>Total vendido</td><td>${money(salesTotal)}</td></tr>
+ const todaySales=db.sales.filter(x=>x.sale_date===today()).reduce((s,x)=>s+Number(x.total||0),0);
+ const openSales=db.sales.filter(x=>Number(x.total||0)>Number(x.paid||0)).length;
+ return pageHead("Relatório da loja",`<button class="btn ghost" onclick="exportCsv()">Exportar CSV</button>`) + `
+ <div class="report-hero"><h2>Visão geral da Lojinha da Tuca</h2><p>Resumo financeiro, vendas, estoque e compromissos da loja.</p></div>
+ <div class="report-grid">
+  <div class="report-card report-purple"><span>Vendas hoje</span><strong>${money(todaySales)}</strong></div>
+  <div class="report-card report-blue"><span>Total vendido</span><strong>${money(salesTotal)}</strong></div>
+  <div class="report-card report-orange"><span>A receber</span><strong>${money(rec)}</strong></div>
+  <div class="report-card report-green"><span>Estoque (preço de venda)</span><strong>${money(stock)}</strong></div>
+ </div>
+ <div class="report-balance"><div class="label">BALANÇO DA LOJA</div><strong>${money(resultado)}</strong><div class="muted">Estoque + A receber − A pagar</div></div>
+ <div class="report-section">${table(["INDICADOR","VALOR"],`
  <tr><td>Total recebido</td><td>${money(received)}</td></tr>
- <tr><td>Valor do estoque (preço de venda)</td><td>${money(stock)}</td></tr>
- <tr><td>Valor a receber</td><td>${money(rec)}</td></tr>
  <tr><td>Valor a pagar</td><td>${money(pay)}</td></tr>
- <tr class="report-total"><td><b>ESTOQUE + A RECEBER - A PAGAR</b></td><td><b>${money(resultado)}</b></td></tr>
  <tr><td>Saques registrados</td><td>${money(withdraw)}</td></tr>
+ <tr><td>Vendas em aberto</td><td>${openSales}</td></tr>
  <tr><td>Clientes cadastrados</td><td>${db.clients.length}</td></tr>
  <tr><td>Produtos cadastrados</td><td>${db.products.length}</td></tr>
  <tr><td>Fornecedores cadastrados</td><td>${db.suppliers.length}</td></tr>`)} </div>`;
 }
+
 function exportCsv(){
  const stock=db.products.reduce((s,p)=>s+Number(p.stock||0)*Number(p.sale||0),0);
  const rec=db.sales.reduce((s,x)=>s+Math.max(0,Number(x.total||0)-Number(x.paid||0)),0);
@@ -337,7 +346,6 @@ function exportCsv(){
 function download(name,blob){const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
 $("#backupBtn").onclick=()=>download("backup_lojinhas_da_tuca.json",new Blob([JSON.stringify(db,null,2)],{type:"application/json"}));
 $("#restoreFile").onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const x=JSON.parse(r.result);if(!x.products||!x.sales)throw 0;db=x;save();render();toast("Backup importado")}catch(_){alert("Arquivo de backup inválido.")}};r.readAsText(f);e.target.value=""};
-$("#resetBtn").onclick=()=>{if(confirm("ATENÇÃO: isso apagará os dados deste navegador. Faça um backup antes. Continuar?")){localStorage.removeItem(KEY);db=load();render();toast("Dados limpos")}};
 $("#brand").ondblclick=()=>{const n=prompt("Nome do cabeçalho:",db.title);if(n&&n.trim()){db.title=n.trim();save();render()}};
 window.newProduct=newProduct;window.editProduct=editProduct;window.deleteProduct=deleteProduct;window.restock=restock;window.newClient=newClient;window.editClient=editClient;window.deleteClient=deleteClient;window.clientDetails=clientDetails;window.newSale=newSale;window.saleDetails=saleDetails;window.payment=payment;window.deleteSale=deleteSale;window.whatsapp=whatsapp;window.newSupplier=newSupplier;window.editSupplier=editSupplier;window.deleteSupplier=deleteSupplier;window.supplierDetails=supplierDetails;window.newPayable=newPayable;window.editPayable=editPayable;window.payableDetails=payableDetails;window.supplierPayment=supplierPayment;window.withdrawal=withdrawal;window.go=go;window.closeModal=closeModal;window.saveProduct=saveProduct;window.saveClient=saveClient;window.saveSale=saveSale;window.savePayment=savePayment;window.saveSupplier=saveSupplier;window.savePayable=savePayable;window.saveSupplierPayment=saveSupplierPayment;window.saveWithdrawal=saveWithdrawal;window.exportCsv=exportCsv;
 render();
@@ -355,4 +363,3 @@ $('#mobileRestoreFile')?.addEventListener('change',e=>{
   const src=e.target.files?.[0]; if(!src)return;
   const r=new FileReader(); r.onload=()=>{try{db=JSON.parse(r.result);save();render();toast('Backup importado');}catch(err){alert('Backup inválido.');}}; r.readAsText(src); e.target.value='';
 });
-$('#mobileResetBtn')?.addEventListener('click',()=>$('#resetBtn')?.click());

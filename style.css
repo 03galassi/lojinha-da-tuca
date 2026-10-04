@@ -265,3 +265,13 @@ input,select,textarea{width:100%;border:1px solid #cfd8dc;border-radius:7px;padd
  .modal-actions .btn.ghost{display:inline-flex!important;align-items:center!important;justify-content:center!important;background:#24105f!important;color:#fff!important;border:0!important;font-weight:800!important}
  .modal-actions .btn.primary{display:inline-flex!important;align-items:center!important;justify-content:center!important}
 }
+
+/* V17 - backup controls */
+.top-actions{align-items:center;justify-content:flex-end;gap:8px}
+.mobile-tools{display:flex!important;gap:8px;align-items:center}
+.mobile-tools .btn{flex:1}
+@media(max-width:800px){.mobile-tools{display:grid!important;grid-template-columns:1fr 1fr;gap:8px}.mobile-tools .btn{width:100%!important}.mobile-tools .file-btn{width:100%!important;justify-content:center}}
+/* V17 - attractive report */
+.report-hero{background:linear-gradient(135deg,#25105d,#5d20cf);color:#fff;border-radius:20px;padding:20px;margin-bottom:14px;box-shadow:0 10px 25px rgba(20,0,60,.22)}
+.report-hero h2{margin:0 0 5px;font-size:24px}.report-hero p{margin:0;color:#ddd3f4}.report-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px}.report-card{border-radius:16px;padding:15px;color:#fff;box-shadow:0 7px 16px rgba(0,0,0,.12)}.report-card span{display:block;font-size:13px;opacity:.9}.report-card strong{display:block;font-size:21px;margin-top:5px}.report-purple{background:linear-gradient(135deg,#5b20c9,#7a38ec)}.report-blue{background:linear-gradient(135deg,#087bc8,#12a0e8)}.report-orange{background:linear-gradient(135deg,#f59e0b,#f97316)}.report-green{background:linear-gradient(135deg,#159957,#38b000)}.report-balance{background:#fff;border:2px solid #6a1ce9;border-radius:18px;padding:18px;margin-bottom:14px}.report-balance .label{font-size:13px;color:#666}.report-balance strong{display:block;font-size:28px;color:#35108b;margin-top:4px}.report-section{background:#fff;border-radius:16px;padding:14px;box-shadow:0 4px 14px rgba(0,0,0,.08)}
+@media(max-width:800px){.report-grid{grid-template-columns:1fr}.report-hero h2{font-size:21px}.report-card strong{font-size:20px}.report-balance strong{font-size:25px}}
