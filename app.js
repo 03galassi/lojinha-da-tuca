@@ -19,7 +19,7 @@ function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&l
 function nextId(a){return a.length?Math.max(...a.map(x=>Number(x.id)||0))+1:1}
 function find(a,id){return a.find(x=>Number(x.id)===Number(id))}
 function modal(title,body,buttons=""){
-  $("#modalCard").innerHTML=`<div class="modal-head"><h2>${title}</h2><button class="icon-btn" onclick="closeModal()">✕</button></div>${body}${buttons}`;
+  $("#modalCard").innerHTML=`<div class="modal-head"><div class="modal-title-group"><button class="btn back-btn" onclick="closeModal()">← Voltar</button><h2>${title}</h2></div><button class="icon-btn" onclick="closeModal()" aria-label="Fechar">✕</button></div>${body}${buttons}`;
   $("#modal").classList.remove("hidden");
 }
 function closeModal(){$("#modal").classList.add("hidden")}
@@ -27,8 +27,9 @@ $("#modal").addEventListener("click",e=>e.stopPropagation());
 document.addEventListener("keydown",e=>{if(e.key==="Escape")e.preventDefault()});
 function formField(label,name,value="",type="text"){return `<div class="field"><label>${label}</label><input id="f_${name}" type="${type}" value="${esc(value)}"></div>`}
 function selectField(label,name,opts,value=""){return `<div class="field"><label>${label}</label><select id="f_${name}">${opts.map(o=>`<option ${String(o[0])===String(value)?"selected":""} value="${esc(o[0])}">${esc(o[1])}</option>`).join("")}</select></div>`}
-function pageHead(title,actions=""){return `<div class="page-head"><h1>${title}</h1><div class="actions">${actions}</div></div>`}
+function pageHead(title,actions=""){return `<div class="page-head"><div class="page-title-group"><button class="btn back-btn" onclick="go('dashboard')">← Voltar</button><h1>${title}</h1></div><div class="actions">${actions}</div></div>`}
 function table(headers,rows,empty="Nenhum registro"){return `<div class="table-wrap"><table class="table"><thead><tr>${headers.map(h=>`<th>${h}</th>`).join("")}</tr></thead><tbody>${rows||`<tr><td colspan="${headers.length}" class="empty">${empty}</td></tr>`}</tbody></table></div>`}
+function searchBox(id,placeholder,value){return `<div class="toolbar search-toolbar"><input id="${id}" class="search" type="search" autocomplete="off" placeholder="${placeholder}" value="${esc(value||"")}" oninput="render()"><span class="search-hint">⌕</span></div>`}
 
 function decorateTables(){
   document.querySelectorAll('.table').forEach(tbl=>{
@@ -45,10 +46,25 @@ function syncMobileMenu(){
 }
 function closeMobileMenu(){ $('#mobileDrawer')?.classList.add('hidden'); }
 function render(){
+ const active=document.activeElement;
+ const activeId=active?.id||"";
+ const activeValue=(active && "value" in active)?active.value:"";
+ const activeStart=(active && typeof active.selectionStart==="number")?active.selectionStart:null;
+ const activeEnd=(active && typeof active.selectionEnd==="number")?active.selectionEnd:null;
  $("#appTitle").textContent=db.title||"LOJINHA DA TUCA";
  document.querySelectorAll("#tabs button").forEach(b=>b.classList.toggle("active",b.dataset.page===page));
  const fn={dashboard:dashboard,products:products,clients:clients,sales:sales,receivables:receivables,suppliers:suppliers,payables:payables,finished:finished,reports:reports}[page];
  $("#content").innerHTML=fn();
+ decorateTables();
+ syncMobileMenu();
+ if(activeId){
+   const el=document.getElementById(activeId);
+   if(el){
+     if("value" in el) el.value=activeValue;
+     el.focus({preventScroll:true});
+     if(activeStart!==null && typeof el.setSelectionRange==="function") el.setSelectionRange(activeStart,activeEnd);
+   }
+ }
 }
 $("#tabs").addEventListener("click",e=>{const b=e.target.closest("button[data-page]");if(b){page=b.dataset.page;render()}});
 
@@ -110,7 +126,7 @@ function products(){
  <td>${esc(p.code)}</td><td>${esc(p.kind)}</td><td>${esc(p.description)}</td><td>${esc(p.size)}</td><td>${money(p.cost)}</td><td>${Number(p.margin||0).toFixed(2)}%</td><td class="money">${money(p.sale)}</td><td>${p.stock}</td>
  <td class="nowrap"><button class="icon-btn" onclick="editProduct(${p.id})">Editar</button> <button class="icon-btn" onclick="restock(${p.id})">Repor</button> <button class="icon-btn" onclick="deleteProduct(${p.id})">Excluir</button></td></tr>`);
  return pageHead("Produtos",`<button class="btn primary" onclick="newProduct()">+ Novo produto</button>`) +
- `<div class="panel"><div class="toolbar"><input id="pq" class="search" placeholder="Pesquisar produto..." value="${esc(q)}" oninput="render()"></div>${table(["Código","Tipo","Descrição","Tamanho","Custo","Margem","Venda","Estoque","Ações"],rows.join(""))}</div>`;
+ `<div class="panel">${searchBox("pq","Buscar produto por código, descrição ou tamanho...",q)}${table(["Código","Tipo","Descrição","Tamanho","Custo","Margem","Venda","Estoque","Ações"],rows.join(""))}</div>`;
 }
 function productForm(p={}){
  const margins=[["30","30%"],["50","50%"],["80","80%"],["100","100%"],["Outra","Outra"]];
@@ -139,8 +155,8 @@ function setupProductCalc(){
  if(margin.value==="Outra")wrap.style.display="block";
  if(!sale.value || !Number(sale.value))calc();
 }
-function newProduct(){modal("Novo produto",productForm(),`<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">Cancelar</button><button class="btn primary" onclick="saveProduct()">Salvar</button></div>`);setupProductCalc()}
-function editProduct(id){const p=find(db.products,id);modal("Editar produto",productForm(p),`<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">Cancelar</button><button class="btn primary" onclick="saveProduct(${id})">Salvar</button></div>`);setupProductCalc()}
+function newProduct(){modal("Novo produto",productForm(),`<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">← Voltar</button><button class="btn primary" onclick="saveProduct()">Salvar</button></div>`);setupProductCalc()}
+function editProduct(id){const p=find(db.products,id);modal("Editar produto",productForm(p),`<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">← Voltar</button><button class="btn primary" onclick="saveProduct(${id})">Salvar</button></div>`);setupProductCalc()}
 function saveProduct(id){
  const v=n=>$("#f_"+n).value.trim(), p=find(db.products,id)||{id:nextId(db.products)};
  const marginValue=v("margin")==="Outra"?(Number($("#f_customMargin")?.value)||0):Number(v("margin"))||0;
@@ -154,18 +170,18 @@ function restock(id){const n=prompt("Quantidade a adicionar:","1");const q=parse
 function clients(){
  let q=($("#cq")?.value||"").toLowerCase();
  const rows=db.clients.filter(c=>(`${c.name} ${c.cpf} ${c.phone} ${c.address}`).toLowerCase().includes(q)).map(c=>`<tr ondblclick="clientDetails(${c.id})"><td>${esc(c.name)}</td><td>${esc(c.cpf||"")}</td><td>${esc(c.phone||"")}</td><td>${esc(c.address||"")}</td><td><button class="icon-btn" onclick="event.stopPropagation();editClient(${c.id})">Editar</button> <button class="icon-btn" onclick="deleteClient(${c.id})">Excluir</button></td></tr>`);
- return pageHead("Clientes",`<button class="btn primary" onclick="newClient()">+ Novo cliente</button>`) + `<div class="panel"><div class="toolbar"><input id="cq" class="search" placeholder="Pesquisar cliente..." value="${esc(q)}" oninput="render()"></div>${table(["Nome","CPF","Telefone","Endereço","Ações"],rows.join(""))}</div>`;
+ return pageHead("Clientes",`<button class="btn primary" onclick="newClient()">+ Novo cliente</button>`) + `<div class="panel">${searchBox("cq","Buscar cliente por nome, CPF ou telefone...",q)}${table(["Nome","CPF","Telefone","Endereço","Ações"],rows.join(""))}</div>`;
 }
 function clientForm(c={}){
  return `<div class="grid2">${formField("Nome completo","name",c.name)}${formField("CPF","cpf",c.cpf)}${formField("Telefone","phone",c.phone)}${formField("Endereço","address",c.address)}</div><div class="field" style="margin-top:10px"><label>Observações</label><textarea id="f_notes">${esc(c.notes||"")}</textarea></div>`;
 }
-function newClient(prefill=""){modal("Novo cliente",clientForm({name:prefill}),`<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">Cancelar</button><button class="btn primary" onclick="saveClient()">Salvar</button></div>`)}
+function newClient(prefill=""){modal("Novo cliente",clientForm({name:prefill}),`<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">← Voltar</button><button class="btn primary" onclick="saveClient()">Salvar</button></div>`)}
 function clientDetails(id){
  const c=find(db.clients,id); if(!c)return; const sales=db.sales.filter(s=>Number(s.client_id)===Number(id));
  const total=sales.reduce((a,s)=>a+Number(s.total||0),0), paid=sales.reduce((a,s)=>a+Number(s.paid||0),0);
  modal("Detalhes do cliente",`<div class="detail-grid"><p><b>Nome:</b> ${esc(c.name||"")}</p><p><b>CPF:</b> ${esc(c.cpf||"")}</p><p><b>Telefone:</b> ${esc(c.phone||"")}</p><p><b>Endereço:</b> ${esc(c.address||"")}</p><p><b>Total de vendas:</b> ${sales.length}</p><p><b>Valor vendido:</b> ${money(total)}</p><p><b>Recebido:</b> ${money(paid)}</p><p><b>Em aberto:</b> ${money(Math.max(0,total-paid))}</p><p><b>Observações:</b> ${esc(c.notes||"")}</p></div>`,`<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">Fechar</button><button class="btn primary" onclick="closeModal();editClient(${id})">Editar</button></div>`)
 }
-function editClient(id){const c=find(db.clients,id);modal("Editar cliente",clientForm(c),`<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">Cancelar</button><button class="btn primary" onclick="saveClient(${id})">Salvar</button></div>`)}
+function editClient(id){const c=find(db.clients,id);modal("Editar cliente",clientForm(c),`<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">← Voltar</button><button class="btn primary" onclick="saveClient(${id})">Salvar</button></div>`)}
 function saveClient(id){
  const v=n=>$("#f_"+n).value.trim(),c=find(db.clients,id)||{id:nextId(db.clients)};
  Object.assign(c,{name:v("name"),cpf:v("cpf"),phone:v("phone"),address:v("address"),notes:$("#f_notes").value});
@@ -173,8 +189,9 @@ function saveClient(id){
 function deleteClient(id){if(db.sales.some(s=>Number(s.client_id)===Number(id)))return alert("Este cliente possui histórico de vendas e não pode ser excluído.");if(confirm("Excluir este cliente?")){db.clients=db.clients.filter(x=>x.id!==id);save();render()}}
 
 function sales(){
- const rows=[...db.sales].sort((a,b)=>b.id-a.id).map(s=>{const c=find(db.clients,s.client_id),bal=Math.max(0,s.total-s.paid);return `<tr ondblclick="saleDetails(${s.id})"><td>${s.sale_date}</td><td>${esc(c?.name||"Não informado")}</td><td>${money(s.total)}</td><td>${esc(s.payment||"")}</td><td>${s.installments||1}</td><td>${s.due_date||""}</td><td>${money(s.paid)}</td><td class="money">${money(bal)}</td><td class="nowrap"><button class="icon-btn" onclick="event.stopPropagation();payment(${s.id})">Pagamento</button> <button class="icon-btn" onclick="event.stopPropagation();deleteSale(${s.id})">Excluir</button></td></tr>`});
- return pageHead("Vendas",`<button class="btn primary" onclick="newSale()">+ Nova venda</button>`) + `<div class="panel">${table(["Data","Cliente","Total","Pagamento","Parcelas","Vencimento","Pago","Saldo","Ações"],rows.join(""))}</div>`;
+ const q=(document.getElementById("sq")?.value||"").toLowerCase().trim();
+ const rows=[...db.sales].sort((a,b)=>b.id-a.id).filter(s=>{const c=find(db.clients,s.client_id);const text=`${s.sale_date} ${c?.name||""} ${s.payment||""} ${s.due_date||""}`.toLowerCase();return text.includes(q)}).map(s=>{const c=find(db.clients,s.client_id),bal=Math.max(0,s.total-s.paid);return `<tr onclick="saleDetails(${s.id})"><td>${s.sale_date}</td><td>${esc(c?.name||"Não informado")}</td><td>${money(s.total)}</td><td>${esc(s.payment||"")}</td><td>${s.installments||1}</td><td>${s.due_date||""}</td><td>${money(s.paid)}</td><td class="money">${money(bal)}</td><td class="nowrap"><button class="icon-btn" onclick="event.stopPropagation();saleDetails(${s.id})">Detalhes</button> <button class="icon-btn" onclick="event.stopPropagation();payment(${s.id})">Pagamento</button> <button class="icon-btn" onclick="event.stopPropagation();deleteSale(${s.id})">Excluir</button></td></tr>`});
+ return pageHead("Vendas",`<button class="btn primary" onclick="newSale()">+ Nova venda</button>`) + `<div class="panel">${searchBox("sq","Buscar por cliente, data ou forma de pagamento...",q)}${table(["Data","Cliente","Total","Pagamento","Parcelas","Vencimento","Pago","Saldo","Ações"],rows.join(""))}</div>`;
 }
 function saleDetails(id){
  const s=find(db.sales,id); if(!s)return; const c=find(db.clients,s.client_id); const items=db.saleItems.filter(i=>Number(i.sale_id)===Number(id));
@@ -185,7 +202,7 @@ function newSale(){
  if(!db.products.some(p=>p.stock>0))return alert("Não há produtos disponíveis para venda.");
  const clients=[["","Selecione..."],...db.clients.map(c=>[c.id,c.name])];
  const prods=[...db.products.filter(p=>p.stock>0).map(p=>[p.id,`${p.description} / ${p.size||"-"} — ${money(p.sale)} — estoque ${p.stock}`])];
- modal("Nova venda",`<div class="grid2">${selectField("Cliente","client_id",clients)}${selectField("Produto","product_id",prods)}${formField("Quantidade","qty",1,"number")}${selectField("Pagamento","payment",[["À vista","À vista"],["Crédito","Crédito"],["PIX","PIX"],["Cartão","Cartão"],["Outro","Outro"]])}${selectField("Parcelas","installments",[["1","1x"],["2","2x"],["3","3x"],["4","4x"],["5","5x"],["6","6x"]],1)}${formField("Vencimento","due_date",today(),"date")}</div><div class="panel" style="margin-top:12px"><b>Total: <span id="saleTotal">${money(0)}</span></b></div>`, `<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">Cancelar</button><button class="btn primary" onclick="saveSale()">Confirmar venda</button></div>`);
+ modal("Nova venda",`<div class="grid2">${selectField("Cliente","client_id",clients)}${selectField("Produto","product_id",prods)}${formField("Quantidade","qty",1,"number")}${selectField("Pagamento","payment",[["À vista","À vista"],["Crédito","Crédito"],["PIX","PIX"],["Cartão","Cartão"],["Outro","Outro"]])}${selectField("Parcelas","installments",[["1","1x"],["2","2x"],["3","3x"],["4","4x"],["5","5x"],["6","6x"]],1)}${formField("Vencimento","due_date",today(),"date")}</div><div class="panel" style="margin-top:12px"><b>Total: <span id="saleTotal">${money(0)}</span></b></div>`, `<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">← Voltar</button><button class="btn primary" onclick="saveSale()">Confirmar venda</button></div>`);
  $("#f_product_id").addEventListener("change",calcSale);$("#f_qty").addEventListener("input",calcSale);calcSale()
 }
 function calcSale(){const p=find(db.products,$("#f_product_id").value);$("#saleTotal").textContent=money((p?.sale||0)*(parseInt($("#f_qty").value)||0))}
@@ -200,14 +217,15 @@ function saveSale(){
 function deleteSale(id){if(!confirm("Excluir a venda? O item voltará ao estoque e os pagamentos serão removidos."))return;db.saleItems.filter(x=>x.sale_id===id).forEach(it=>{const p=find(db.products,it.product_id);if(p)p.stock+=Number(it.qty)});db.saleItems=db.saleItems.filter(x=>x.sale_id!==id);db.payments=db.payments.filter(x=>x.sale_id!==id);db.sales=db.sales.filter(x=>x.id!==id);save();render();toast("Venda excluída")}
 function payment(id){
  const s=find(db.sales,id),bal=Math.max(0,s.total-s.paid);if(bal<=.005)return alert("Venda já quitada.");
- modal("Registrar pagamento",`<p>Saldo atual: <b>${money(bal)}</b></p><div class="grid2">${formField("Valor","amount",bal,"number")}${formField("Data","pay_date",today(),"date")}</div>`,`<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">Cancelar</button><button class="btn primary" onclick="savePayment(${id})">Confirmar pagamento</button></div>`)
+ modal("Registrar pagamento",`<p>Saldo atual: <b>${money(bal)}</b></p><div class="grid2">${formField("Valor","amount",bal,"number")}${formField("Data","pay_date",today(),"date")}</div>`,`<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">← Voltar</button><button class="btn primary" onclick="savePayment(${id})">Confirmar pagamento</button></div>`)
 }
 function savePayment(id){const s=find(db.sales,id),bal=Math.max(0,s.total-s.paid),v=Number($("#f_amount").value)||0;if(v<=0||v>bal)return alert("Valor inválido.");s.paid+=v;db.payments.push({id:nextId(db.payments),sale_id:id,pay_date:$("#f_pay_date").value,amount:v});save();closeModal();render();toast("Pagamento registrado")}
 
 function receivables(){
+ const q=(document.getElementById("rq")?.value||"").toLowerCase().trim();
  const open=db.sales.filter(s=>s.total>s.paid);
- const rows=open.sort((a,b)=>(a.due_date||"").localeCompare(b.due_date||"")).map(s=>{const c=find(db.clients,s.client_id),bal=s.total-s.paid,late=s.due_date&&s.due_date<today();return `<tr><td>${esc(c?.name||"Não informado")}</td><td>${s.sale_date}</td><td>${s.due_date||""}</td><td>${money(s.total)}</td><td>${money(s.paid)}</td><td class="money">${money(bal)}</td><td><span class="status ${late?"bad":"open"}">${late?"ATRASADO":"EM ABERTO"}</span></td><td><button class="icon-btn" onclick="event.stopPropagation();payment(${s.id})">Pagamento</button>${c?.phone?` <button class="icon-btn" onclick="whatsapp(${s.id})">WhatsApp</button>`:""}</td></tr>`});
- return pageHead("Contas a Receber") + `<div class="panel">${table(["Cliente","Venda","Vencimento","Total","Pago","Saldo","Status","Ações"],rows.join(""))}</div>`;
+ const rows=open.sort((a,b)=>(a.due_date||"").localeCompare(b.due_date||"")).filter(s=>{const c=find(db.clients,s.client_id);const late=s.due_date&&s.due_date<today();const text=`${c?.name||""} ${s.sale_date} ${s.due_date||""} ${late?"atrasado":"em aberto"}`.toLowerCase();return text.includes(q)}).map(s=>{const c=find(db.clients,s.client_id),bal=s.total-s.paid,late=s.due_date&&s.due_date<today();return `<tr><td>${esc(c?.name||"Não informado")}</td><td>${s.sale_date}</td><td>${s.due_date||""}</td><td>${money(s.total)}</td><td>${money(s.paid)}</td><td class="money">${money(bal)}</td><td><span class="status ${late?"bad":"open"}">${late?"ATRASADO":"EM ABERTO"}</span></td><td><button class="icon-btn" onclick="payment(${s.id})">Pagamento</button>${c?.phone?` <button class="icon-btn" onclick="whatsapp(${s.id})">WhatsApp</button>`:""}</td></tr>`});
+ return pageHead("Contas a Receber") + `<div class="panel">${searchBox("rq","Buscar cliente, vencimento ou status...",q)}${table(["Cliente","Venda","Vencimento","Total","Pago","Saldo","Status","Ações"],rows.join(""))}</div>`;
 }
 function whatsapp(id){
  const s=find(db.sales,id),c=find(db.clients,s.client_id);
@@ -228,22 +246,24 @@ function whatsapp(id){
 }
 
 function suppliers(){
- const rows=db.suppliers.map(s=>`<tr ondblclick="supplierDetails(${s.id})"><td>${esc(s.name)}</td><td>${esc(s.phone)}</td><td>${esc(s.document)}</td><td>${esc(s.address)}</td><td><button class="icon-btn" onclick="event.stopPropagation();editSupplier(${s.id})">Editar</button> <button class="icon-btn" onclick="deleteSupplier(${s.id})">Excluir</button></td></tr>`);
- return pageHead("Fornecedores",`<button class="btn primary" onclick="newSupplier()">+ Novo fornecedor</button>`) + `<div class="panel">${table(["Fornecedor","Telefone","CPF/CNPJ","Endereço","Ações"],rows.join(""))}</div>`;
+ const q=(document.getElementById("fq")?.value||"").toLowerCase().trim();
+ const rows=db.suppliers.filter(s=>`${s.name||""} ${s.phone||""} ${s.document||""} ${s.address||""}`.toLowerCase().includes(q)).map(s=>`<tr onclick="supplierDetails(${s.id})"><td>${esc(s.name)}</td><td>${esc(s.phone)}</td><td>${esc(s.document)}</td><td>${esc(s.address)}</td><td><button class="icon-btn" onclick="event.stopPropagation();supplierDetails(${s.id})">Detalhes</button> <button class="icon-btn" onclick="event.stopPropagation();editSupplier(${s.id})">Editar</button> <button class="icon-btn" onclick="event.stopPropagation();deleteSupplier(${s.id})">Excluir</button></td></tr>`);
+ return pageHead("Fornecedores",`<button class="btn primary" onclick="newSupplier()">+ Novo fornecedor</button>`) + `<div class="panel">${searchBox("fq","Buscar fornecedor, telefone ou CPF/CNPJ...",q)}${table(["Fornecedor","Telefone","CPF/CNPJ","Endereço","Ações"],rows.join(""))}</div>`;
 }
 function supplierForm(s={}){return `<div class="grid2">${formField("Nome","name",s.name)}${formField("Telefone","phone",s.phone)}${formField("CPF/CNPJ","document",s.document)}${formField("Endereço","address",s.address)}</div><div class="field" style="margin-top:10px"><label>Observações</label><textarea id="f_notes">${esc(s.notes||"")}</textarea></div>`}
 function supplierDetails(id){
  const s=find(db.suppliers,id); if(!s)return; const buys=db.payables.filter(p=>Number(p.supplier_id)===Number(id)); const total=buys.reduce((a,p)=>a+Number(p.total||0),0),paid=buys.reduce((a,p)=>a+Number(p.paid||0),0);
  modal("Detalhes do fornecedor",`<div class="detail-grid"><p><b>Fornecedor:</b> ${esc(s.name||"")}</p><p><b>Telefone:</b> ${esc(s.phone||"")}</p><p><b>CPF/CNPJ:</b> ${esc(s.document||"")}</p><p><b>Endereço:</b> ${esc(s.address||"")}</p><p><b>Compras/contas:</b> ${buys.length}</p><p><b>Total:</b> ${money(total)}</p><p><b>Pago:</b> ${money(paid)}</p><p><b>Em aberto:</b> ${money(Math.max(0,total-paid))}</p><p><b>Observações:</b> ${esc(s.notes||"")}</p></div>`,`<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">Fechar</button><button class="btn primary" onclick="closeModal();editSupplier(${id})">Editar</button></div>`)
 }
-function newSupplier(){modal("Novo fornecedor",supplierForm(),`<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">Cancelar</button><button class="btn primary" onclick="saveSupplier()">Salvar</button></div>`)}
-function editSupplier(id){modal("Editar fornecedor",supplierForm(find(db.suppliers,id)),`<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">Cancelar</button><button class="btn primary" onclick="saveSupplier(${id})">Salvar</button></div>`)}
+function newSupplier(){modal("Novo fornecedor",supplierForm(),`<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">← Voltar</button><button class="btn primary" onclick="saveSupplier()">Salvar</button></div>`)}
+function editSupplier(id){modal("Editar fornecedor",supplierForm(find(db.suppliers,id)),`<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">← Voltar</button><button class="btn primary" onclick="saveSupplier(${id})">Salvar</button></div>`)}
 function saveSupplier(id){const v=n=>$("#f_"+n).value.trim(),s=find(db.suppliers,id)||{id:nextId(db.suppliers)};Object.assign(s,{name:v("name"),phone:v("phone"),document:v("document"),address:v("address"),notes:$("#f_notes").value});if(!s.name)return alert("Informe o nome.");if(!id)db.suppliers.push(s);save();closeModal();render();toast("Fornecedor salvo")}
 function deleteSupplier(id){if(db.payables.some(p=>p.supplier_id===id))return alert("Este fornecedor possui contas registradas.");if(confirm("Excluir fornecedor?")){db.suppliers=db.suppliers.filter(x=>x.id!==id);save();render()}}
 
 function payables(){
- const rows=db.payables.sort((a,b)=>(a.due_date||"").localeCompare(b.due_date||"")).map(p=>{const s=find(db.suppliers,p.supplier_id),bal=p.total-p.paid,late=p.due_date&&p.due_date<today();return `<tr ondblclick="payableDetails(${p.id})"><td>${esc(s?.name||"Não informado")}</td><td>${esc(p.description)}</td><td>${p.due_date||""}</td><td>${p.installments>1?`${p.installment_number}/${p.installments}`:"1/1"}</td><td>${money(p.total)}</td><td>${money(p.paid)}</td><td class="money">${money(bal)}</td><td><span class="status ${bal<=0?"ok":late?"bad":"open"}">${bal<=0?"PAGO":late?"ATRASADO":"EM ABERTO"}</span></td><td>${bal>0?`<button class="icon-btn" onclick="supplierPayment(${p.id})">Pagamento</button>`:""} <button class="icon-btn" onclick="editPayable(${p.id})">Editar</button></td></tr>`});
- return pageHead("Contas a Pagar",`<button class="btn primary" onclick="newPayable()">+ Nova conta</button><button class="btn warn" onclick="withdrawal()">Saque</button>`) + `<div class="panel">${table(["Fornecedor","Descrição","Vencimento","Parcela","Total","Pago","Saldo","Status","Ações"],rows.join(""))}</div>`;
+ const q=(document.getElementById("pq2")?.value||"").toLowerCase().trim();
+ const rows=db.payables.sort((a,b)=>(a.due_date||"").localeCompare(b.due_date||"")).filter(p=>{const s=find(db.suppliers,p.supplier_id),bal=p.total-p.paid,late=p.due_date&&p.due_date<today();const text=`${s?.name||""} ${p.description||""} ${p.due_date||""} ${late?"atrasado":bal<=0?"pago":"em aberto"}`.toLowerCase();return text.includes(q)}).map(p=>{const s=find(db.suppliers,p.supplier_id),bal=p.total-p.paid,late=p.due_date&&p.due_date<today();return `<tr onclick="payableDetails(${p.id})"><td>${esc(s?.name||"Não informado")}</td><td>${esc(p.description)}</td><td>${p.due_date||""}</td><td>${p.installments>1?`${p.installment_number}/${p.installments}`:"1/1"}</td><td>${money(p.total)}</td><td>${money(p.paid)}</td><td class="money">${money(bal)}</td><td><span class="status ${bal<=0?"ok":late?"bad":"open"}">${bal<=0?"PAGO":late?"ATRASADO":"EM ABERTO"}</span></td><td><button class="icon-btn" onclick="event.stopPropagation();payableDetails(${p.id})">Detalhes</button>${bal>0?` <button class="icon-btn" onclick="event.stopPropagation();supplierPayment(${p.id})">Pagamento</button>`:""} <button class="icon-btn" onclick="event.stopPropagation();editPayable(${p.id})">Editar</button></td></tr>`});
+ return pageHead("Contas a Pagar",`<button class="btn primary" onclick="newPayable()">+ Nova conta</button><button class="btn warn" onclick="withdrawal()">Saque</button>`) + `<div class="panel">${searchBox("pq2","Buscar fornecedor, descrição, vencimento ou status...",q)}${table(["Fornecedor","Descrição","Vencimento","Parcela","Total","Pago","Saldo","Status","Ações"],rows.join(""))}</div>`;
 }
 function payableDetails(id){
  const p=find(db.payables,id); if(!p)return; const s=find(db.suppliers,p.supplier_id); const status=p.paid>=p.total?"PAGO":(p.due_date&&p.due_date<today()?"ATRASADO":"EM ABERTO");
@@ -260,8 +280,8 @@ function payableForm(p={},isEdit=false){
  const installments=p.installments||1;
  return `<div class="grid2">${selectField("Fornecedor","supplier_id",opts,p.supplier_id)}${formField("Descrição","description",p.description)}${formField("Vencimento da 1ª parcela","due_date",p.due_date||today(),"date")}${formField("Total da compra","total",p.installments_total||p.total||0,"number")}${isEdit?formField("Parcela atual","installments",installments,"number"):selectField("Número de parcelas","installments",[["1","1x"],["2","2x"],["3","3x"],["4","4x"],["5","5x"],["6","6x"]],installments)}</div><div class="hint" style="margin-top:8px">${isEdit?"Cada parcela é controlada separadamente em A Pagar.":"O total será dividido automaticamente e cada parcela terá vencimento mensal."}</div>`
 }
-function newPayable(){if(!db.suppliers.length)return alert("Cadastre um fornecedor primeiro.");modal("Nova compra / conta a pagar",payableForm(),`<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">Cancelar</button><button class="btn primary" onclick="savePayable()">Salvar compra</button></div>`)}
-function editPayable(id){modal("Editar conta",payableForm(find(db.payables,id),true),`<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">Cancelar</button><button class="btn primary" onclick="savePayable(${id})">Salvar</button></div>`)}
+function newPayable(){if(!db.suppliers.length)return alert("Cadastre um fornecedor primeiro.");modal("Nova compra / conta a pagar",payableForm(),`<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">← Voltar</button><button class="btn primary" onclick="savePayable()">Salvar compra</button></div>`)}
+function editPayable(id){modal("Editar conta",payableForm(find(db.payables,id),true),`<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">← Voltar</button><button class="btn primary" onclick="savePayable(${id})">Salvar</button></div>`)}
 function savePayable(id){
  const supplierId=Number($("#f_supplier_id").value)||null, description=$("#f_description").value.trim(), firstDue=$("#f_due_date").value, total=Number($("#f_total").value)||0, installments=Math.max(1,parseInt($("#f_installments").value)||1);
  if(!supplierId||!description||total<=0||!firstDue)return alert("Preencha os dados.");
@@ -278,14 +298,15 @@ function savePayable(id){
  }
  save();closeModal();render();toast(installments>1?`${installments} parcelas lançadas em A Pagar`:'Conta salva');
 }
-function supplierPayment(id){const p=find(db.payables,id),bal=p.total-p.paid;modal("Registrar pagamento",`<p>Saldo: <b>${money(bal)}</b></p><div class="grid2">${formField("Valor","amount",bal,"number")}${formField("Data","pay_date",today(),"date")}</div>`,`<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">Cancelar</button><button class="btn primary" onclick="saveSupplierPayment(${id})">Confirmar</button></div>`)}
+function supplierPayment(id){const p=find(db.payables,id),bal=p.total-p.paid;modal("Registrar pagamento",`<p>Saldo: <b>${money(bal)}</b></p><div class="grid2">${formField("Valor","amount",bal,"number")}${formField("Data","pay_date",today(),"date")}</div>`,`<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">← Voltar</button><button class="btn primary" onclick="saveSupplierPayment(${id})">Confirmar</button></div>`)}
 function saveSupplierPayment(id){const p=find(db.payables,id),bal=p.total-p.paid,v=Number($("#f_amount").value)||0;if(v<=0||v>bal)return alert("Valor inválido.");p.paid+=v;db.supplierPayments.push({id:nextId(db.supplierPayments),payable_id:id,pay_date:$("#f_pay_date").value,amount:v});save();closeModal();render();toast("Pagamento registrado")}
-function withdrawal(){modal("Saque",`<div class="grid2">${formField("Data","withdraw_date",today(),"date")}${formField("Valor","amount",0,"number")}</div>${formField("Descrição","description","")}`,`<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">Cancelar</button><button class="btn primary" onclick="saveWithdrawal()">Registrar</button></div>`)}
+function withdrawal(){modal("Saque",`<div class="grid2">${formField("Data","withdraw_date",today(),"date")}${formField("Valor","amount",0,"number")}</div>${formField("Descrição","description","")}`,`<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">← Voltar</button><button class="btn primary" onclick="saveWithdrawal()">Registrar</button></div>`)}
 function saveWithdrawal(){const v=Number($("#f_amount").value)||0;if(v<=0)return alert("Informe o valor.");db.withdrawals.push({id:nextId(db.withdrawals),withdraw_date:$("#f_withdraw_date").value,description:$("#f_description").value,amount:v});save();closeModal();render();toast("Saque registrado")}
 
 function finished(){
- const rows=db.sales.filter(s=>s.total>0&&s.paid>=s.total).sort((a,b)=>b.id-a.id).map(s=>{const c=find(db.clients,s.client_id);return `<tr ondblclick="saleDetails(${s.id})"><td>${s.sale_date}</td><td>${esc(c?.name||"Não informado")}</td><td>${money(s.total)}</td><td>${money(s.paid)}</td><td>${esc(s.payment)}</td><td>${s.installments||1}</td><td>${s.due_date||""}</td><td><button class="icon-btn" onclick="event.stopPropagation();deleteSale(${s.id})">Excluir</button></td></tr>`});
- return pageHead("Vendas Finalizadas")+`<div class="panel">${table(["Data","Cliente","Total","Recebido","Pagamento","Parcelas","Vencimento","Ações"],rows.join(""))}</div>`;
+ const q=(document.getElementById("finq")?.value||"").toLowerCase().trim();
+ const rows=db.sales.filter(s=>s.total>0&&s.paid>=s.total).sort((a,b)=>b.id-a.id).filter(s=>{const c=find(db.clients,s.client_id);const text=`${s.sale_date} ${c?.name||""} ${s.payment||""} ${s.due_date||""}`.toLowerCase();return text.includes(q)}).map(s=>{const c=find(db.clients,s.client_id);return `<tr onclick="saleDetails(${s.id})"><td>${s.sale_date}</td><td>${esc(c?.name||"Não informado")}</td><td>${money(s.total)}</td><td>${money(s.paid)}</td><td>${esc(s.payment)}</td><td>${s.installments||1}</td><td>${s.due_date||""}</td><td><button class="icon-btn" onclick="event.stopPropagation();saleDetails(${s.id})">Detalhes</button> <button class="icon-btn" onclick="event.stopPropagation();deleteSale(${s.id})">Excluir</button></td></tr>`});
+ return pageHead("Vendas Finalizadas")+`<div class="panel">${searchBox("finq","Buscar cliente, data ou pagamento...",q)}${table(["Data","Cliente","Total","Recebido","Pagamento","Parcelas","Vencimento","Ações"],rows.join(""))}</div>`;
 }
 function reports(){
  const salesTotal=db.sales.reduce((s,x)=>s+Number(x.total||0),0);
@@ -318,7 +339,7 @@ $("#backupBtn").onclick=()=>download("backup_lojinhas_da_tuca.json",new Blob([JS
 $("#restoreFile").onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const x=JSON.parse(r.result);if(!x.products||!x.sales)throw 0;db=x;save();render();toast("Backup importado")}catch(_){alert("Arquivo de backup inválido.")}};r.readAsText(f);e.target.value=""};
 $("#resetBtn").onclick=()=>{if(confirm("ATENÇÃO: isso apagará os dados deste navegador. Faça um backup antes. Continuar?")){localStorage.removeItem(KEY);db=load();render();toast("Dados limpos")}};
 $("#brand").ondblclick=()=>{const n=prompt("Nome do cabeçalho:",db.title);if(n&&n.trim()){db.title=n.trim();save();render()}};
-window.newProduct=newProduct;window.editProduct=editProduct;window.deleteProduct=deleteProduct;window.restock=restock;window.newClient=newClient;window.editClient=editClient;window.deleteClient=deleteClient;window.newSale=newSale;window.payment=payment;window.deleteSale=deleteSale;window.whatsapp=whatsapp;window.newSupplier=newSupplier;window.editSupplier=editSupplier;window.deleteSupplier=deleteSupplier;window.newPayable=newPayable;window.editPayable=editPayable;window.supplierPayment=supplierPayment;window.withdrawal=withdrawal;window.go=go;window.closeModal=closeModal;window.saveProduct=saveProduct;window.saveClient=saveClient;window.saveSale=saveSale;window.savePayment=savePayment;window.saveSupplier=saveSupplier;window.savePayable=savePayable;window.saveSupplierPayment=saveSupplierPayment;window.saveWithdrawal=saveWithdrawal;window.exportCsv=exportCsv;
+window.newProduct=newProduct;window.editProduct=editProduct;window.deleteProduct=deleteProduct;window.restock=restock;window.newClient=newClient;window.editClient=editClient;window.deleteClient=deleteClient;window.clientDetails=clientDetails;window.newSale=newSale;window.saleDetails=saleDetails;window.payment=payment;window.deleteSale=deleteSale;window.whatsapp=whatsapp;window.newSupplier=newSupplier;window.editSupplier=editSupplier;window.deleteSupplier=deleteSupplier;window.supplierDetails=supplierDetails;window.newPayable=newPayable;window.editPayable=editPayable;window.payableDetails=payableDetails;window.supplierPayment=supplierPayment;window.withdrawal=withdrawal;window.go=go;window.closeModal=closeModal;window.saveProduct=saveProduct;window.saveClient=saveClient;window.saveSale=saveSale;window.savePayment=savePayment;window.saveSupplier=saveSupplier;window.savePayable=savePayable;window.saveSupplierPayment=saveSupplierPayment;window.saveWithdrawal=saveWithdrawal;window.exportCsv=exportCsv;
 render();
 
 
