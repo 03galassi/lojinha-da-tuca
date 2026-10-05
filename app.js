@@ -133,8 +133,9 @@ function productForm(p={}){
  const savedMargin=String(p.margin??"");
  const marginKnown=margins.some(o=>o[0]===savedMargin);
  const marginField=selectField("Margem %","margin",margins,marginKnown?savedMargin:"50");
- const body=`<div class="grid2">${formField("Código","code",p.code)}${selectField("Tipo","kind",[["Blusa","Blusa"],["Camiseta","Camiseta"],["Calça Jeans","Calça Jeans"],["Shorts","Shorts"],["Vestido","Vestido"],["Saia","Saia"],["Conjunto","Conjunto"],["Outro","Outro"]],p.kind)}
- ${selectField("Gênero","gender",[["","Selecione..."],["Masculino","Masculino"],["Feminino","Feminino"]],p.gender||"")}${formField("Descrição","description",p.description)}${formField("Tamanho","size",p.size)}
+ const body=`<div class="product-gender-highlight">${selectField("Gênero","gender",[["Masculino","Masculino"],["Feminino","Feminino"]],p.gender||"Masculino")}</div>
+ <div class="grid2">${formField("Código","code",p.code)}${selectField("Tipo","kind",[["Blusa","Blusa"],["Camiseta","Camiseta"],["Calça Jeans","Calça Jeans"],["Shorts","Shorts"],["Vestido","Vestido"],["Saia","Saia"],["Conjunto","Conjunto"],["Outro","Outro"]],p.kind)}
+ ${formField("Descrição","description",p.description)}${formField("Tamanho","size",p.size)}
  ${formField("Custo","cost",p.cost,"number")}${marginField}
  ${formField("Preço de venda","sale",p.sale,"number")}${formField("Estoque","stock",p.stock||0,"number")}</div>
  <div id="customMarginWrap" class="field" style="margin-top:10px;display:none"><label>Margem personalizada %</label><input id="f_customMargin" type="number" step="0.01" min="0" value="${marginKnown?"":esc(savedMargin)}"></div>
