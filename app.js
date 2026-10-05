@@ -1,5 +1,5 @@
 const KEY="lojinha_tuca_web_v1";
-const UI_VERSION="37";
+const UI_VERSION="38";
 const $=s=>document.querySelector(s);
 const money=v=>new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"}).format(Number(v)||0);
 const today=()=>new Date().toISOString().slice(0,10);
@@ -27,12 +27,15 @@ function closeModal(){$("#modal").classList.add("hidden")}
 $("#modal").addEventListener("click",e=>e.stopPropagation());
 document.addEventListener("keydown",e=>{if(e.key==="Escape")e.preventDefault()});
 function formField(label,name,value="",type="text"){
- const extra=name==="cpf"?' inputmode="numeric" maxlength="11" autocomplete="off" oninput="maskCPF(this)"':name==="phone"?' inputmode="tel" maxlength="14" autocomplete="tel" oninput="maskPhone(this)"':'';
+ let extra="";
+ if(name==="cpf") extra=' inputmode="numeric" maxlength="11" autocomplete="off" pattern="[0-9]{11}" oninput="maskCPF(this)" onkeypress="return digitsOnlyKey(event)" onpaste="setTimeout(()=>maskCPF(this),0)"';
+ else if(name==="phone") extra=' inputmode="tel" maxlength="14" autocomplete="tel" pattern="\\([0-9]{2}\\)[0-9]{5}-[0-9]{4}" oninput="maskPhone(this)" onkeypress="return digitsOnlyKey(event)" onpaste="setTimeout(()=>maskPhone(this),0)"';
  return `<div class="field"><label>${label}</label><input class="form-control" id="f_${name}" type="${type}" value="${esc(value)}"${extra}></div>`
 }
 function onlyDigits(v){return String(v||"").replace(/\D/g,"")}
+function digitsOnlyKey(e){return /[0-9]/.test(e.key)||["Backspace","Delete","Tab","ArrowLeft","ArrowRight","Home","End"].includes(e.key)}
 function maskCPF(el){el.value=onlyDigits(el.value).slice(0,11)}
-function formatPhone(value){let v=onlyDigits(value).slice(0,11);return v.length?("("+v.slice(0,2)+(v.length>2?")":"")+(v.length>2?v.slice(2,7)+(v.length>7?"-":"")+v.slice(7):"")):""}
+function formatPhone(value){let v=onlyDigits(value).slice(0,11);if(!v)return "";if(v.length<=2)return "("+v;return "("+v.slice(0,2)+")"+v.slice(2,7)+(v.length>7?"-"+v.slice(7):"")}
 function maskPhone(el){el.value=formatPhone(el.value)}
 function validCPF(value){const cpf=onlyDigits(value);if(!cpf)return true;if(cpf.length!==11||/^(\d)\1{10}$/.test(cpf))return false;let sum=0;for(let i=0;i<9;i++)sum+=Number(cpf[i])*(10-i);let d1=(sum*10)%11;if(d1===10)d1=0;if(d1!==Number(cpf[9]))return false;sum=0;for(let i=0;i<10;i++)sum+=Number(cpf[i])*(11-i);let d2=(sum*10)%11;if(d2===10)d2=0;return d2===Number(cpf[10])}
 function selectField(label,name,opts,value=""){return `<div class="field"><label>${label}</label><select class="form-control" id="f_${name}">${opts.map(o=>`<option ${String(o[0])===String(value)?"selected":""} value="${esc(o[0])}">${esc(o[1])}</option>`).join("")}</select></div>`}
@@ -201,7 +204,7 @@ function editClient(id){const c=find(db.clients,id);modal("Editar cliente",clien
 function saveClient(id){
  const v=n=>$("#f_"+n).value.trim(),c=find(db.clients,id)||{id:nextId(db.clients)};
  const cpf=onlyDigits(v("cpf")),phone=onlyDigits(v("phone"));
- if(!c.name)return alert("Informe o nome.");
+ if(!v("name"))return alert("Informe o nome.");
  if(cpf && cpf.length!==11)return alert("CPF deve conter exatamente 11 dígitos ou ficar em branco.");
  if(cpf && !validCPF(cpf))return alert("CPF inválido. Informe um CPF válido com 11 dígitos ou deixe o campo em branco.");
  if(phone && !/^\d{11}$/.test(phone))return alert("Telefone inválido. Use exatamente o formato (00)00000-0000.");
