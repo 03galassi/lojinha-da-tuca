@@ -1,5 +1,5 @@
 const KEY="lojinha_tuca_web_v1";
-const UI_VERSION="26";
+const UI_VERSION="31";
 const $=s=>document.querySelector(s);
 const money=v=>new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"}).format(Number(v)||0);
 const today=()=>new Date().toISOString().slice(0,10);
@@ -212,12 +212,20 @@ function newSale(){
  const prods=[...db.products.filter(p=>Number(p.stock)>0)];
  modal("Nova venda",`<div class="grid2">${selectField("Cliente","client_id",clients)}${searchableProductField(prods,"")}${formField("Quantidade","qty",1,"number")}${formField("Preço original","original_price",0,"number")}${formField("Valor da venda","sale_price",0,"number")}${selectField("Desconto","discount_option",[["0","Sem desconto"],["5","5%"],["10","10%"],["15","15%"],["20","20%"],["other","Outra"]],"0")}${formField("Desconto %","discount",0,"number")}${selectField("Pagamento","payment",[["Crédito","Crédito"],["À vista","À vista"]],"Crédito")}${selectField("Parcelas","installments",[["1","1x"],["2","2x"],["3","3x"],["4","4x"],["5","5x"],["6","6x"]],1)}${formField("Vencimento","due_date",today(),"date")}</div><div class="panel" style="margin-top:12px"><b>Total da venda: <span id="saleTotal">${money(0)}</span></b></div>`, `<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">← Voltar</button><button class="btn primary" onclick="saveSale()">Confirmar venda</button></div>`);
  const ps=$("#f_product_search"), results=$("#productSearchResults");
+ results.addEventListener("pointerdown",e=>{
+   const option=e.target.closest(".product-search-option");
+   if(!option) return;
+   e.preventDefault();
+   e.stopPropagation();
+   selectSaleProduct(Number(option.dataset.productId));
+ });
  function showResults(term=""){
    const q=term.trim().toLowerCase();
    const matches=prods.filter(p=>`${p.kind||""} ${p.description||""} ${p.size||""}`.toLowerCase().includes(q));
-   results.innerHTML=matches.length?matches.map(p=>`<button type="button" class="product-search-option" onclick="event.preventDefault();event.stopPropagation();selectSaleProduct(${p.id})"><span><b>${esc(p.description||"Sem descrição")}</b><small>${esc(p.kind||"")}${p.size?` • Tam. ${esc(p.size)}`:""}</small></span><strong>${money(p.sale)}<small> estoque: ${p.stock}</small></strong></button>`).join(""): `<div class="product-search-empty">Nenhum produto encontrado.</div>`;
+   results.innerHTML=matches.length?matches.map(p=>`<button type="button" class="product-search-option" data-product-id="${p.id}"><span><b>${esc(p.description||"Sem descrição")}</b><small>${esc(p.kind||"")}${p.size?` • Tam. ${esc(p.size)}`:""}</small></span><strong>${money(p.sale)}<small> estoque: ${p.stock}</small></strong></button>`).join(""): `<div class="product-search-empty">Nenhum produto encontrado.</div>`;
    results.classList.remove("hidden");
-   results.style.removeProperty("display");
+   results.hidden=false;
+   results.style.display="block";
  }
  ps.addEventListener("focus",()=>showResults(ps.value));
  ps.addEventListener("input",()=>{ $("#f_product_id").value=""; $("#f_original_price").value="0"; $("#f_sale_price").value="0"; $("#f_discount").value="0"; showResults(ps.value); calcSale(); });
@@ -243,9 +251,13 @@ function selectSaleProduct(id){
  const results=$("#productSearchResults");
  if(results){
    results.classList.add("hidden");
+   results.hidden=true;
    results.style.setProperty("display","none","important");
+   results.style.setProperty("visibility","hidden","important");
+   results.style.setProperty("pointer-events","none","important");
    results.innerHTML="";
  }
+ $("#f_product_search")?.blur();
  calcSale();
 }
 function calcSale(){
