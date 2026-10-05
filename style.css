@@ -368,3 +368,20 @@ input,select,textarea{width:100%;border:1px solid #cfd8dc;border-radius:7px;padd
 
 /* V31 — fechamento absoluto da busca de produto */
 .product-search-results[hidden], .product-search-results.hidden { display:none !important; visibility:hidden !important; pointer-events:none !important; }
+
+
+/* V32 — Contas a Pagar e cadastro de produto */
+.payables-head{display:flex;flex-direction:column;align-items:flex-start;gap:10px;margin:2px 0 14px}
+.payables-head h1{margin:0;font-size:24px;line-height:1.15}
+.payables-head-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.payable-row-actions{display:flex;align-items:center;justify-content:flex-start;gap:6px;flex-wrap:nowrap}
+.payable-row-actions .icon-btn{white-space:nowrap}
+.danger-action{background:#ffe8e8!important;color:#a52323!important}
+@media(max-width:800px){
+ .payables-head{gap:10px;margin:4px 0 14px}
+ .payables-head h1{font-size:24px}
+ .payables-head-actions{width:100%;display:grid;grid-template-columns:1fr 1fr 1.25fr;gap:7px}
+ .payables-head-actions .btn{width:100%;padding:10px 7px;font-size:13px;white-space:nowrap}
+ .payable-row-actions{width:100%;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+ .payable-row-actions .icon-btn{width:100%;padding:8px 4px;font-size:12px;white-space:nowrap}
+}

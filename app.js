@@ -1,5 +1,5 @@
 const KEY="lojinha_tuca_web_v1";
-const UI_VERSION="31";
+const UI_VERSION="32";
 const $=s=>document.querySelector(s);
 const money=v=>new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"}).format(Number(v)||0);
 const today=()=>new Date().toISOString().slice(0,10);
@@ -140,7 +140,7 @@ function productForm(p={}){
  const marginKnown=margins.some(o=>o[0]===savedMargin);
  const marginField=selectField("Margem %","margin",margins,marginKnown?savedMargin:"50");
  const gender=String(p.gender||"Masculino");
- const body=`<div class="grid2">${formField("Código","code",p.code)}${selectField("Tipo","kind",[["Blusa","Blusa"],["Camiseta","Camiseta"],["Calça Jeans","Calça Jeans"],["Shorts","Shorts"],["Vestido","Vestido"],["Saia","Saia"],["Conjunto","Conjunto"],["Outro","Outro"]],p.kind)}
+ const body=`<div class="grid2">${selectField("Tipo","kind",[["Blusa","Blusa"],["Camiseta","Camiseta"],["Calça Jeans","Calça Jeans"],["Shorts","Shorts"],["Vestido","Vestido"],["Saia","Saia"],["Conjunto","Conjunto"],["Outro","Outro"]],p.kind)}
  ${selectField("Gênero","gender",[["Masculino","Masculino"],["Feminino","Feminino"]],gender)}${formField("Descrição","description",p.description)}
  ${formField("Tamanho","size",p.size)}
  ${formField("Custo","cost",p.cost,"number")}${marginField}
@@ -170,7 +170,7 @@ function saveProduct(id){
  const marginValue=v("margin")==="Outra"?(Number($("#f_customMargin")?.value)||0):Number(v("margin"))||0;
  const costValue=Number(v("cost").replace(",","."))||0;
  const saleValue=Number(v("sale").replace(",","."))||0;
- Object.assign(p,{code:v("code"),kind:v("kind"),gender:v("gender"),description:v("description"),size:v("size"),cost:costValue,margin:marginValue,sale:saleValue,stock:Math.max(0,parseInt(v("stock"))||0),observation:$("#f_observation").value});
+ Object.assign(p,{code:p.code||"",kind:v("kind"),gender:v("gender"),description:v("description"),size:v("size"),cost:costValue,margin:marginValue,sale:saleValue,stock:Math.max(0,parseInt(v("stock"))||0),observation:$("#f_observation").value});
  if(!id)db.products.push(p);save();closeModal();render();toast("Produto salvo")}
 function deleteProduct(id){if(db.saleItems.some(x=>Number(x.product_id)===Number(id)))return alert("Este produto possui histórico de vendas e não pode ser excluído.");if(confirm("Excluir este produto?")){db.products=db.products.filter(x=>x.id!==id);save();render()}}
 function restock(id){const n=prompt("Quantidade a adicionar:","1");const q=parseInt(n);if(q>0){const p=find(db.products,id);p.stock+=q;p.exhausted_at=null;save();render();toast("Estoque atualizado")}}
@@ -345,8 +345,18 @@ function deleteSupplier(id){if(db.payables.some(p=>p.supplier_id===id))return al
 
 function payables(){
  const q=(document.getElementById("pq2")?.value||"").toLowerCase().trim();
- const rows=db.payables.sort((a,b)=>(a.due_date||"").localeCompare(b.due_date||"")).filter(p=>{const s=find(db.suppliers,p.supplier_id),bal=p.total-p.paid,late=p.due_date&&p.due_date<today();const text=`${s?.name||""} ${p.description||""} ${p.due_date||""} ${late?"atrasado":bal<=0?"pago":"em aberto"}`.toLowerCase();return text.includes(q)}).map(p=>{const s=find(db.suppliers,p.supplier_id),bal=p.total-p.paid,late=p.due_date&&p.due_date<today();return `<tr class="${late&&bal>0?"row-late":""}" onclick="payableDetails(${p.id})"><td>${esc(s?.name||"Não informado")}</td><td>${esc(p.description)}</td><td>${p.due_date||""}</td><td>${p.installments>1?`${p.installment_number}/${p.installments}`:"1/1"}</td><td>${money(p.total)}</td><td>${money(p.paid)}</td><td class="money">${money(bal)}</td><td><span class="status ${bal<=0?"ok":late?"bad":"open"}">${bal<=0?"PAGO":late?"ATRASADO":"EM ABERTO"}</span></td><td><button class="icon-btn" onclick="event.stopPropagation();payableDetails(${p.id})">Detalhes</button>${bal>0?` <button class="icon-btn" onclick="event.stopPropagation();supplierPayment(${p.id})">Pagamento</button>`:""} <button class="icon-btn" onclick="event.stopPropagation();editPayable(${p.id})">Editar</button></td></tr>`});
- return pageHead("Contas a Pagar",`<button class="btn primary" onclick="newPayable()">+ Nova conta</button><button class="btn warn" onclick="withdrawal()">Saque</button>`) + `<div class="panel">${searchBox("pq2","Buscar fornecedor, descrição, vencimento ou status...",q)}${table(["Fornecedor","Descrição","Vencimento","Parcela","Total","Pago","Saldo","Status","Ações"],rows.join(""))}</div>`;
+ const rows=db.payables.sort((a,b)=>(a.due_date||"").localeCompare(b.due_date||"")).filter(p=>{const s=find(db.suppliers,p.supplier_id),bal=p.total-p.paid,late=p.due_date&&p.due_date<today();const text=`${s?.name||""} ${p.description||""} ${p.due_date||""} ${late?"atrasado":bal<=0?"pago":"em aberto"}`.toLowerCase();return text.includes(q)}).map(p=>{const s=find(db.suppliers,p.supplier_id),bal=p.total-p.paid,late=p.due_date&&p.due_date<today();return `<tr class="${late&&bal>0?"row-late":""}" onclick="payableDetails(${p.id})"><td>${esc(s?.name||"Não informado")}</td><td>${esc(p.description)}</td><td>${p.due_date||""}</td><td>${p.installments>1?`${p.installment_number}/${p.installments}`:"1/1"}</td><td>${money(p.total)}</td><td>${money(p.paid)}</td><td class="money">${money(bal)}</td><td><span class="status ${bal<=0?"ok":late?"bad":"open"}">${bal<=0?"PAGO":late?"ATRASADO":"EM ABERTO"}</span></td><td><div class="payable-row-actions"><button class="icon-btn" onclick="event.stopPropagation();payableDetails(${p.id})">Detalhes</button><button class="icon-btn" onclick="event.stopPropagation();supplierPayment(${p.id})">Pagamento</button><button class="icon-btn" onclick="event.stopPropagation();editPayable(${p.id})">Editar</button><button class="icon-btn danger-action" onclick="event.stopPropagation();deletePayable(${p.id})">Excluir</button></div></td></tr>`});
+ const header=`<div class="payables-head"><h1>Contas a Pagar</h1><div class="payables-head-actions"><button class="btn ghost" onclick="go('dashboard')">← Voltar</button><button class="btn warn" onclick="withdrawal()">Saque</button><button class="btn primary" onclick="newPayable()">+ Nova conta</button></div></div>`;
+ return header + `<div class="panel">${searchBox("pq2","Buscar fornecedor, descrição, vencimento ou status...",q)}${table(["Fornecedor","Descrição","Vencimento","Parcela","Total","Pago","Saldo","Status","Ações"],rows.join(""))}</div>`;
+}
+function deletePayable(id){
+ const p=find(db.payables,id);
+ if(!p)return;
+ const label=p.description||"este lançamento";
+ if(!confirm(`Excluir ${label}? Esta ação também removerá os pagamentos/comprovantes vinculados a este lançamento.`))return;
+ db.supplierPayments=db.supplierPayments.filter(x=>Number(x.payable_id)!==Number(id));
+ db.payables=db.payables.filter(x=>Number(x.id)!==Number(id));
+ save();render();toast("Lançamento excluído");
 }
 function payableDetails(id){
  const p=find(db.payables,id); if(!p)return; const s=find(db.suppliers,p.supplier_id); const status=p.paid>=p.total?"PAGO":(p.due_date&&p.due_date<today()?"ATRASADO":"EM ABERTO");
