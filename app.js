@@ -34,6 +34,8 @@ function formField(label,name,value="",type="text"){
 }
 function onlyDigits(v){return String(v||"").replace(/\D/g,"")}
 function digitsOnlyKey(e){return /[0-9]/.test(e.key)||["Backspace","Delete","Tab","ArrowLeft","ArrowRight","Home","End"].includes(e.key)}
+function cpfBeforeInput(e){if(e.inputType && e.inputType.startsWith("delete"))return true;if(e.data && /\D/.test(e.data))return false;return true}
+function phoneBeforeInput(e){if(e.inputType && e.inputType.startsWith("delete"))return true;if(e.data && /\D/.test(e.data))return false;return true}
 function maskCPF(el){el.value=onlyDigits(el.value).slice(0,11)}
 function formatPhone(value){let v=onlyDigits(value).slice(0,11);if(!v)return "";if(v.length<=2)return "("+v;return "("+v.slice(0,2)+")"+v.slice(2,7)+(v.length>7?"-"+v.slice(7):"")}
 function maskPhone(el){el.value=formatPhone(el.value)}
@@ -192,7 +194,7 @@ function clients(){
  return pageHead("Clientes",`<button class="btn primary" onclick="newClient()">+ Novo cliente</button>`) + `<div class="panel">${searchBox("cq","Buscar cliente por nome e sobrenome...",q)}${table(["Nome","CPF","Telefone","Endereço","Ações"],rows.join(""))}</div>`;
 }
 function clientForm(c={}){
- return `<div class="grid2">${formField("Nome completo","name",c.name)}${formField("CPF","cpf",onlyDigits(c.cpf||""))}${formField("Telefone","phone",formatPhone(c.phone||""))}${formField("Endereço","address",c.address)}</div><div class="field" style="margin-top:10px"><label>Observações</label><textarea id="f_notes">${esc(c.notes||"")}</textarea></div>`;
+ return `<div class="grid2">${formField("Nome completo","name",c.name)}${formField("CPF (11 dígitos)","cpf",onlyDigits(c.cpf||""))}${formField("Telefone (00)00000-0000","phone",formatPhone(c.phone||""))}${formField("Endereço","address",c.address)}</div><div class="field" style="margin-top:10px"><label>Observações</label><textarea id="f_notes">${esc(c.notes||"")}</textarea></div>`;
 }
 function newClient(prefill=""){modal("Novo cliente",clientForm({name:prefill}),`<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">← Voltar</button><button class="btn primary" onclick="saveClient()">Salvar</button></div>`)}
 function clientDetails(id){
@@ -205,9 +207,11 @@ function saveClient(id){
  const v=n=>$("#f_"+n).value.trim(),c=find(db.clients,id)||{id:nextId(db.clients)};
  const cpf=onlyDigits(v("cpf")),phone=onlyDigits(v("phone"));
  if(!v("name"))return alert("Informe o nome.");
- if(cpf && cpf.length!==11)return alert("CPF deve conter exatamente 11 dígitos ou ficar em branco.");
- if(cpf && !validCPF(cpf))return alert("CPF inválido. Informe um CPF válido com 11 dígitos ou deixe o campo em branco.");
- if(phone && !/^\d{11}$/.test(phone))return alert("Telefone inválido. Use exatamente o formato (00)00000-0000.");
+ const cpfEl=$("#f_cpf"), phoneEl=$("#f_phone");
+ cpfEl.setCustomValidity(""); phoneEl.setCustomValidity("");
+ if(cpf && cpf.length!==11){cpfEl.setCustomValidity("CPF deve ter 11 dígitos ou ficar em branco.");cpfEl.reportValidity();return;}
+ if(cpf && !validCPF(cpf)){cpfEl.setCustomValidity("CPF inválido. Digite um CPF válido com 11 dígitos.");cpfEl.reportValidity();return;}
+ if(phone.length!==11){phoneEl.setCustomValidity("Telefone deve ter 11 dígitos no formato (00)00000-0000.");phoneEl.reportValidity();return;}
  Object.assign(c,{name:v("name"),cpf:cpf,phone:formatPhone(phone),address:v("address"),notes:$("#f_notes").value});
  if(!id)db.clients.push(c);save();closeModal();render();toast("Cliente salvo")}
 function deleteClient(id){if(db.sales.some(s=>Number(s.client_id)===Number(id)))return alert("Este cliente possui histórico de vendas e não pode ser excluído.");if(confirm("Excluir este cliente?")){db.clients=db.clients.filter(x=>x.id!==id);save();render()}}
