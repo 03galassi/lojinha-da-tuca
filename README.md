@@ -1,2 +1,3 @@
-Lojinha da Tuca WEB V30 — correção definitiva da lista de produtos na Nova Venda.
-Após selecionar um produto, a lista é fechada e removida do conteúdo visível.
+Lojinha da Tuca WEB V36
+
+Ações de Contas a Pagar dimensionadas automaticamente pelo texto, mantendo os quatro botões na horizontal.
