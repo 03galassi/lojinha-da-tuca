@@ -561,8 +561,8 @@ async function googleDriveBackup(){
     toast('Conectando ao Google Drive...');
     const token=await googleDriveToken(); if(!token)return;
     const content=JSON.stringify({...db, backup_created_at:new Date().toISOString()},null,2);
-    const metadata={name:'Lojinha_da_Tuca_Backup.json',mimeType:'application/json'};
-    const q=encodeURIComponent("name='Lojinha_da_Tuca_Backup.json' and trashed=false");
+    const metadata={name:'Lojinha_da_Tuca_Backup.json',mimeType:'application/json',appProperties:{tuca_app:'lojinha-da-tuca',backup_type:'database'}};
+    const q=encodeURIComponent("name='Lojinha_da_Tuca_Backup.json' and appProperties has { key='tuca_app' and value='lojinha-da-tuca' } and trashed=false");
     const found=await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&spaces=drive&fields=files(id,name)`,{headers:{Authorization:`Bearer ${token}`} });
     if(!found.ok)throw new Error('Falha ao consultar o Google Drive.');
     const list=await found.json();
@@ -580,8 +580,8 @@ async function googleDriveRestore(){
   try{
     toast('Conectando ao Google Drive...');
     const token=await googleDriveToken(); if(!token)return;
-    const q=encodeURIComponent("name='Lojinha_da_Tuca_Backup.json' and trashed=false");
-    const found=await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&spaces=drive&orderBy=modifiedTime desc&fields=files(id,name,modifiedTime)`,{headers:{Authorization:`Bearer ${token}`} });
+    const q=encodeURIComponent("name='Lojinha_da_Tuca_Backup.json' and appProperties has { key='tuca_app' and value='lojinha-da-tuca' } and trashed=false");
+    const found=await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&spaces=drive&orderBy=modifiedTime desc&fields=files(id,name,modifiedTime,appProperties)`,{headers:{Authorization:`Bearer ${token}`} });
     if(!found.ok)throw new Error('Falha ao consultar o Google Drive.');
     const list=await found.json();
     if(!list.files?.length)return alert('Nenhum backup da Lojinha da Tuca foi encontrado no Google Drive.');
