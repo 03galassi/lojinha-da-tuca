@@ -323,3 +323,8 @@ input,select,textarea{width:100%;border:1px solid #cfd8dc;border-radius:7px;padd
 
 /* V21 — gênero destacado no cadastro de produto */
 .product-gender-highlight{margin-bottom:12px;padding:10px 12px;background:#f7f2ff;border:2px solid #7c3aed;border-radius:12px}.product-gender-highlight .field label{font-size:14px;color:#24105f;font-weight:800}.product-gender-highlight select{border-color:#7c3aed;background:#fff;font-size:16px;font-weight:600}
+
+/* V22 - gênero sempre visível no cadastro de produto */
+.product-gender-highlight{display:block!important;visibility:visible!important;position:relative!important;z-index:3!important}
+.product-gender-highlight label{display:block!important}
+.product-gender-highlight select{display:block!important;visibility:visible!important;min-height:46px!important;width:100%!important}

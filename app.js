@@ -133,7 +133,7 @@ function productForm(p={}){
  const savedMargin=String(p.margin??"");
  const marginKnown=margins.some(o=>o[0]===savedMargin);
  const marginField=selectField("Margem %","margin",margins,marginKnown?savedMargin:"50");
- const body=`<div class="product-gender-highlight">${selectField("Gênero","gender",[["Masculino","Masculino"],["Feminino","Feminino"]],p.gender||"Masculino")}</div>
+ const body=`<div class="product-gender-highlight"><div class="field"><label>GÊNERO DO PRODUTO</label><select id="f_gender"><option value="Masculino" ${String(p.gender||"Masculino")==="Masculino"?"selected":""}>Masculino</option><option value="Feminino" ${String(p.gender||"")==="Feminino"?"selected":""}>Feminino</option></select></div></div>
  <div class="grid2">${formField("Código","code",p.code)}${selectField("Tipo","kind",[["Blusa","Blusa"],["Camiseta","Camiseta"],["Calça Jeans","Calça Jeans"],["Shorts","Shorts"],["Vestido","Vestido"],["Saia","Saia"],["Conjunto","Conjunto"],["Outro","Outro"]],p.kind)}
  ${formField("Descrição","description",p.description)}${formField("Tamanho","size",p.size)}
  ${formField("Custo","cost",p.cost,"number")}${marginField}
