@@ -29,7 +29,7 @@ function formField(label,name,value="",type="text"){return `<div class="field"><
 function selectField(label,name,opts,value=""){return `<div class="field"><label>${label}</label><select id="f_${name}">${opts.map(o=>`<option ${String(o[0])===String(value)?"selected":""} value="${esc(o[0])}">${esc(o[1])}</option>`).join("")}</select></div>`}
 function pageHead(title,actions=""){return `<div class="page-head"><div class="page-title-group"><button class="btn back-btn" onclick="go('dashboard')">← Voltar</button><h1>${title}</h1></div><div class="actions">${actions}</div></div>`}
 function table(headers,rows,empty="Nenhum registro"){return `<div class="table-wrap"><table class="table"><thead><tr>${headers.map(h=>`<th>${h}</th>`).join("")}</tr></thead><tbody>${rows||`<tr><td colspan="${headers.length}" class="empty">${empty}</td></tr>`}</tbody></table></div>`}
-function searchBox(id,placeholder,value){return `<div class="toolbar search-toolbar"><input id="${id}" class="search" type="search" autocomplete="off" placeholder="${placeholder}" value="${esc(value||"")}" oninput="render()"><span class="search-hint">⌕</span></div>`}
+function searchBox(id,placeholder,value){return `<div class="toolbar search-toolbar"><input id="${id}" class="search" type="text" inputmode="search" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="${placeholder}" value="${esc(value||"")}" oninput="render()"><span class="search-hint">⌕</span></div>`}
 
 function decorateTables(){
   document.querySelectorAll('.table').forEach(tbl=>{
@@ -121,12 +121,12 @@ function recentSales(){
 }
 
 function products(){
- let q=($("#pq")?.value||"").toLowerCase();
- const rows=db.products.filter(p=>(`${p.code} ${p.kind} ${p.description} ${p.size}`).toLowerCase().includes(q)).map(p=>`<tr>
+ let q=($("#pq")?.value||"").toLowerCase().trim();
+ const rows=db.products.filter(p=>(`${p.kind||""} ${p.description||""}`).toLowerCase().includes(q)).map(p=>`<tr>
  <td>${esc(p.code)}</td><td>${esc(p.kind)}</td><td>${esc(p.description)}</td><td>${esc(p.size)}</td><td>${money(p.cost)}</td><td>${Number(p.margin||0).toFixed(2)}%</td><td class="money">${money(p.sale)}</td><td>${p.stock}</td>
  <td class="nowrap"><button class="icon-btn" onclick="editProduct(${p.id})">Editar</button> <button class="icon-btn" onclick="restock(${p.id})">Repor</button> <button class="icon-btn" onclick="deleteProduct(${p.id})">Excluir</button></td></tr>`);
  return pageHead("Produtos",`<button class="btn primary" onclick="newProduct()">+ Novo produto</button>`) +
- `<div class="panel">${searchBox("pq","Buscar produto por código, descrição ou tamanho...",q)}${table(["Código","Tipo","Descrição","Tamanho","Custo","Margem","Venda","Estoque","Ações"],rows.join(""))}</div>`;
+ `<div class="panel">${searchBox("pq","Buscar produto por tipo ou descrição...",q)}${table(["Código","Tipo","Descrição","Tamanho","Custo","Margem","Venda","Estoque","Ações"],rows.join(""))}</div>`;
 }
 function productForm(p={}){
  const margins=[["30","30%"],["50","50%"],["80","80%"],["100","100%"],["Outra","Outra"]];
@@ -168,9 +168,9 @@ function deleteProduct(id){if(db.saleItems.some(x=>Number(x.product_id)===Number
 function restock(id){const n=prompt("Quantidade a adicionar:","1");const q=parseInt(n);if(q>0){const p=find(db.products,id);p.stock+=q;p.exhausted_at=null;save();render();toast("Estoque atualizado")}}
 
 function clients(){
- let q=($("#cq")?.value||"").toLowerCase();
- const rows=db.clients.filter(c=>(`${c.name} ${c.cpf} ${c.phone} ${c.address}`).toLowerCase().includes(q)).map(c=>`<tr ondblclick="clientDetails(${c.id})"><td>${esc(c.name)}</td><td>${esc(c.cpf||"")}</td><td>${esc(c.phone||"")}</td><td>${esc(c.address||"")}</td><td><button class="icon-btn" onclick="event.stopPropagation();editClient(${c.id})">Editar</button> <button class="icon-btn" onclick="deleteClient(${c.id})">Excluir</button></td></tr>`);
- return pageHead("Clientes",`<button class="btn primary" onclick="newClient()">+ Novo cliente</button>`) + `<div class="panel">${searchBox("cq","Buscar cliente por nome, CPF ou telefone...",q)}${table(["Nome","CPF","Telefone","Endereço","Ações"],rows.join(""))}</div>`;
+ let q=($("#cq")?.value||"").toLowerCase().trim();
+ const rows=db.clients.filter(c=>(c.name||"").toLowerCase().includes(q)).map(c=>`<tr ondblclick="clientDetails(${c.id})"><td>${esc(c.name)}</td><td>${esc(c.cpf||"")}</td><td>${esc(c.phone||"")}</td><td>${esc(c.address||"")}</td><td><button class="icon-btn" onclick="event.stopPropagation();editClient(${c.id})">Editar</button> <button class="icon-btn" onclick="deleteClient(${c.id})">Excluir</button></td></tr>`);
+ return pageHead("Clientes",`<button class="btn primary" onclick="newClient()">+ Novo cliente</button>`) + `<div class="panel">${searchBox("cq","Buscar cliente por nome e sobrenome...",q)}${table(["Nome","CPF","Telefone","Endereço","Ações"],rows.join(""))}</div>`;
 }
 function clientForm(c={}){
  return `<div class="grid2">${formField("Nome completo","name",c.name)}${formField("CPF","cpf",c.cpf)}${formField("Telefone","phone",c.phone)}${formField("Endereço","address",c.address)}</div><div class="field" style="margin-top:10px"><label>Observações</label><textarea id="f_notes">${esc(c.notes||"")}</textarea></div>`;
@@ -298,8 +298,69 @@ function savePayable(id){
  }
  save();closeModal();render();toast(installments>1?`${installments} parcelas lançadas em A Pagar`:'Conta salva');
 }
-function supplierPayment(id){const p=find(db.payables,id),bal=p.total-p.paid;modal("Registrar pagamento",`<p>Saldo: <b>${money(bal)}</b></p><div class="grid2">${formField("Valor","amount",bal,"number")}${formField("Data","pay_date",today(),"date")}</div>`,`<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">← Voltar</button><button class="btn primary" onclick="saveSupplierPayment(${id})">Confirmar</button></div>`)}
-function saveSupplierPayment(id){const p=find(db.payables,id),bal=p.total-p.paid,v=Number($("#f_amount").value)||0;if(v<=0||v>bal)return alert("Valor inválido.");p.paid+=v;db.supplierPayments.push({id:nextId(db.supplierPayments),payable_id:id,pay_date:$("#f_pay_date").value,amount:v});save();closeModal();render();toast("Pagamento registrado")}
+let paymentReceiptData=null;
+function supplierPayment(id){
+ const p=find(db.payables,id),bal=Math.max(0,p.total-p.paid); paymentReceiptData=null;
+ modal("Registrar pagamento",`<p>Saldo da parcela: <b>${money(bal)}</b></p>
+ <div class="grid2">${formField("Valor","amount",bal,"number")}${formField("Data","pay_date",today(),"date")}</div>
+ <div class="receipt-box">
+   <label>Comprovante de pagamento</label>
+   <div class="receipt-actions">
+     <button type="button" class="btn ghost" onclick="document.getElementById('receiptCamera').click()">📷 Câmera</button>
+     <button type="button" class="btn ghost" onclick="document.getElementById('receiptGallery').click()">🖼 Galeria</button>
+   </div>
+   <input id="receiptCamera" type="file" accept="image/*" capture="environment" style="display:none" onchange="handleReceiptFile(this)">
+   <input id="receiptGallery" type="file" accept="image/*" style="display:none" onchange="handleReceiptFile(this)">
+   <div id="receiptStatus" class="receipt-status">Nenhum comprovante anexado.</div>
+   <img id="receiptPreview" class="receipt-preview" alt="Prévia do comprovante" style="display:none">
+ </div>
+ <p class="hint">Se o valor for maior que esta parcela, o excedente será abatido automaticamente da próxima parcela do mesmo lançamento.</p>`,`<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">← Voltar</button><button class="btn primary" onclick="saveSupplierPayment(${id})">Confirmar</button></div>`)
+}
+function handleReceiptFile(input){
+ const file=input?.files?.[0]; if(!file)return;
+ if(!file.type.startsWith("image/"))return alert("Selecione uma imagem.");
+ const reader=new FileReader();
+ reader.onload=()=>{
+   const img=new Image();
+   img.onload=()=>{
+     const max=1400, scale=Math.min(1,max/Math.max(img.width,img.height));
+     const c=document.createElement("canvas"); c.width=Math.max(1,Math.round(img.width*scale)); c.height=Math.max(1,Math.round(img.height*scale));
+     c.getContext("2d").drawImage(img,0,0,c.width,c.height);
+     paymentReceiptData=c.toDataURL("image/jpeg",.78);
+     const prev=$("#receiptPreview"); if(prev){prev.src=paymentReceiptData;prev.style.display="block"}
+     const st=$("#receiptStatus"); if(st)st.textContent="Comprovante anexado com sucesso.";
+   }; img.src=reader.result;
+ }; reader.readAsDataURL(file);
+}
+function saveSupplierPayment(id){
+ const p=find(db.payables,id); if(!p)return;
+ const currentBalance=Math.max(0,Number(p.total||0)-Number(p.paid||0));
+ const entered=Number($("#f_amount").value)||0;
+ if(entered<=0)return alert("Informe um valor maior que zero.");
+ const date=$("#f_pay_date").value||today();
+ const groupId=p.installment_group;
+ let remaining=entered, applied=0, count=0;
+ const targets=db.payables.filter(x=>Number(x.supplier_id)===Number(p.supplier_id) && x.installment_group===groupId && Number(x.installment_number||0)>=Number(p.installment_number||0)).sort((a,b)=>Number(a.installment_number||0)-Number(b.installment_number||0));
+ // Para contas antigas sem grupo de parcelas, aplica somente nesta conta.
+ const list=targets.length?targets:[p];
+ for(const item of list){
+   const saldo=Math.max(0,Number(item.total||0)-Number(item.paid||0));
+   if(saldo<=0)continue;
+   const use=Math.min(remaining,saldo);
+   if(use>0){
+     item.paid=Number(item.paid||0)+use;
+     db.supplierPayments.push({id:nextId(db.supplierPayments),payable_id:item.id,pay_date:date,amount:use,receipt:paymentReceiptData||null,source_payment_id:`${id}-${Date.now()}`,applied_to_installment:item.installment_number||1});
+     remaining-=use; applied+=use; count++;
+   }
+   if(remaining<=0.005)break;
+ }
+ if(applied<=0){return alert("Não foi possível aplicar o pagamento.")}
+ if(remaining>0.005){
+   // Não cria saldo negativo. Informa o excedente que ultrapassou todas as parcelas.
+   alert(`Pagamento aplicado até o limite das parcelas. Excedente não aplicado: ${money(remaining)}.`);
+ }
+ save();closeModal();render();toast(count>1?`Pagamento distribuído em ${count} parcelas`:`Pagamento registrado`);
+}
 function withdrawal(){modal("Saque",`<div class="grid2">${formField("Data","withdraw_date",today(),"date")}${formField("Valor","amount",0,"number")}</div>${formField("Descrição","description","")}`,`<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">← Voltar</button><button class="btn primary" onclick="saveWithdrawal()">Registrar</button></div>`)}
 function saveWithdrawal(){const v=Number($("#f_amount").value)||0;if(v<=0)return alert("Informe o valor.");db.withdrawals.push({id:nextId(db.withdrawals),withdraw_date:$("#f_withdraw_date").value,description:$("#f_description").value,amount:v});save();closeModal();render();toast("Saque registrado")}
 
@@ -318,7 +379,7 @@ function reports(){
  const withdraw=db.withdrawals.reduce((s,x)=>s+Number(x.amount||0),0);
  const todaySales=db.sales.filter(x=>x.sale_date===today()).reduce((s,x)=>s+Number(x.total||0),0);
  const openSales=db.sales.filter(x=>Number(x.total||0)>Number(x.paid||0)).length;
- return pageHead("Relatório da loja",`<button class="btn ghost" onclick="exportCsv()">Exportar CSV</button>`) + `
+ return pageHead("Relatório da loja",`<button class="btn ghost" onclick="exportPdf()">Exportar PDF</button>`) + `
  <div class="report-hero"><h2>Visão geral da Lojinha da Tuca</h2><p>Resumo financeiro, vendas, estoque e compromissos da loja.</p></div>
  <div class="report-grid">
   <div class="report-card report-purple"><span>Vendas hoje</span><strong>${money(todaySales)}</strong></div>
@@ -337,6 +398,13 @@ function reports(){
  <tr><td>Fornecedores cadastrados</td><td>${db.suppliers.length}</td></tr>`)} </div>`;
 }
 
+function exportPdf(){
+ const previous=document.title;
+ document.title="Relatório - Lojinha da Tuca";
+ document.body.classList.add("print-report");
+ setTimeout(()=>{window.print();setTimeout(()=>{document.body.classList.remove("print-report");document.title=previous},500)},50);
+}
+
 function exportCsv(){
  const stock=db.products.reduce((s,p)=>s+Number(p.stock||0)*Number(p.sale||0),0);
  const rec=db.sales.reduce((s,x)=>s+Math.max(0,Number(x.total||0)-Number(x.paid||0)),0);
@@ -347,7 +415,7 @@ function download(name,blob){const a=document.createElement("a");a.href=URL.crea
 $("#backupBtn").onclick=()=>download("backup_lojinhas_da_tuca.json",new Blob([JSON.stringify(db,null,2)],{type:"application/json"}));
 $("#restoreFile").onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const x=JSON.parse(r.result);if(!x.products||!x.sales)throw 0;db=x;save();render();toast("Backup importado")}catch(_){alert("Arquivo de backup inválido.")}};r.readAsText(f);e.target.value=""};
 $("#brand").ondblclick=()=>{const n=prompt("Nome do cabeçalho:",db.title);if(n&&n.trim()){db.title=n.trim();save();render()}};
-window.newProduct=newProduct;window.editProduct=editProduct;window.deleteProduct=deleteProduct;window.restock=restock;window.newClient=newClient;window.editClient=editClient;window.deleteClient=deleteClient;window.clientDetails=clientDetails;window.newSale=newSale;window.saleDetails=saleDetails;window.payment=payment;window.deleteSale=deleteSale;window.whatsapp=whatsapp;window.newSupplier=newSupplier;window.editSupplier=editSupplier;window.deleteSupplier=deleteSupplier;window.supplierDetails=supplierDetails;window.newPayable=newPayable;window.editPayable=editPayable;window.payableDetails=payableDetails;window.supplierPayment=supplierPayment;window.withdrawal=withdrawal;window.go=go;window.closeModal=closeModal;window.saveProduct=saveProduct;window.saveClient=saveClient;window.saveSale=saveSale;window.savePayment=savePayment;window.saveSupplier=saveSupplier;window.savePayable=savePayable;window.saveSupplierPayment=saveSupplierPayment;window.saveWithdrawal=saveWithdrawal;window.exportCsv=exportCsv;
+window.newProduct=newProduct;window.editProduct=editProduct;window.deleteProduct=deleteProduct;window.restock=restock;window.newClient=newClient;window.editClient=editClient;window.deleteClient=deleteClient;window.clientDetails=clientDetails;window.newSale=newSale;window.saleDetails=saleDetails;window.payment=payment;window.deleteSale=deleteSale;window.whatsapp=whatsapp;window.newSupplier=newSupplier;window.editSupplier=editSupplier;window.deleteSupplier=deleteSupplier;window.supplierDetails=supplierDetails;window.newPayable=newPayable;window.editPayable=editPayable;window.payableDetails=payableDetails;window.supplierPayment=supplierPayment;window.withdrawal=withdrawal;window.go=go;window.closeModal=closeModal;window.saveProduct=saveProduct;window.saveClient=saveClient;window.saveSale=saveSale;window.savePayment=savePayment;window.saveSupplier=saveSupplier;window.savePayable=savePayable;window.saveSupplierPayment=saveSupplierPayment;window.saveWithdrawal=saveWithdrawal;window.exportCsv=exportCsv;window.exportPdf=exportPdf;window.handleReceiptFile=handleReceiptFile;
 render();
 
 
