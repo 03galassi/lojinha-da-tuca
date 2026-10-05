@@ -1,4 +1,5 @@
 const KEY="lojinha_tuca_web_v1";
+const UI_VERSION="25";
 const $=s=>document.querySelector(s);
 const money=v=>new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"}).format(Number(v)||0);
 const today=()=>new Date().toISOString().slice(0,10);
@@ -25,8 +26,8 @@ function modal(title,body,buttons=""){
 function closeModal(){$("#modal").classList.add("hidden")}
 $("#modal").addEventListener("click",e=>e.stopPropagation());
 document.addEventListener("keydown",e=>{if(e.key==="Escape")e.preventDefault()});
-function formField(label,name,value="",type="text"){return `<div class="field"><label>${label}</label><input id="f_${name}" type="${type}" value="${esc(value)}"></div>`}
-function selectField(label,name,opts,value=""){return `<div class="field"><label>${label}</label><select id="f_${name}">${opts.map(o=>`<option ${String(o[0])===String(value)?"selected":""} value="${esc(o[0])}">${esc(o[1])}</option>`).join("")}</select></div>`}
+function formField(label,name,value="",type="text"){return `<div class="field"><label>${label}</label><input class="form-control" id="f_${name}" type="${type}" value="${esc(value)}"></div>`}
+function selectField(label,name,opts,value=""){return `<div class="field"><label>${label}</label><select class="form-control" id="f_${name}">${opts.map(o=>`<option ${String(o[0])===String(value)?"selected":""} value="${esc(o[0])}">${esc(o[1])}</option>`).join("")}</select></div>`}
 function pageHead(title,actions=""){return `<div class="page-head"><div class="page-title-group"><button class="btn back-btn" onclick="go('dashboard')">← Voltar</button><h1>${title}</h1></div><div class="actions">${actions}</div></div>`}
 function table(headers,rows,empty="Nenhum registro"){return `<div class="table-wrap"><table class="table"><thead><tr>${headers.map(h=>`<th>${h}</th>`).join("")}</tr></thead><tbody>${rows||`<tr><td colspan="${headers.length}" class="empty">${empty}</td></tr>`}</tbody></table></div>`}
 function searchBox(id,placeholder,value){return `<div class="toolbar search-toolbar"><input id="${id}" class="search" type="text" inputmode="search" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="${placeholder}" value="${esc(value||"")}" oninput="render()"><span class="search-hint">⌕</span></div>`}
@@ -135,7 +136,7 @@ function productForm(p={}){
  const marginField=selectField("Margem %","margin",margins,marginKnown?savedMargin:"50");
  const gender=String(p.gender||"Masculino");
  const body=`<div class="grid2">${formField("Código","code",p.code)}${selectField("Tipo","kind",[["Blusa","Blusa"],["Camiseta","Camiseta"],["Calça Jeans","Calça Jeans"],["Shorts","Shorts"],["Vestido","Vestido"],["Saia","Saia"],["Conjunto","Conjunto"],["Outro","Outro"]],p.kind)}
- <div class="field"><label>Gênero</label><select id="f_gender"><option value="Masculino" ${gender==="Masculino"?"selected":""}>Masculino</option><option value="Feminino" ${gender==="Feminino"?"selected":""}>Feminino</option></select></div>${formField("Descrição","description",p.description)}
+ ${selectField("Gênero","gender",[["Masculino","Masculino"],["Feminino","Feminino"]],gender)}${formField("Descrição","description",p.description)}
  ${formField("Tamanho","size",p.size)}
  ${formField("Custo","cost",p.cost,"number")}${marginField}
  ${formField("Preço de venda","sale",p.sale,"number")}${formField("Estoque","stock",p.stock||0,"number")}</div>
