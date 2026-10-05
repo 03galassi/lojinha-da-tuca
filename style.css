@@ -290,11 +290,33 @@ input,select,textarea{width:100%;border:1px solid #cfd8dc;border-radius:7px;padd
  .search-toolbar .search{font-size:16px!important;-webkit-user-select:text!important;user-select:text!important;caret-color:#24105f!important}
 }
 @media print{
- body{background:#fff!important}
- body.print-report .topbar,body.print-report .tabs,body.print-report .mobile-drawer,body.print-report .page-head .back-btn,body.print-report .page-head .actions,body.print-report .home-layout,body.print-report #toast{display:none!important}
- body.print-report main{padding:0!important;max-width:none!important}
- body.print-report .report-hero{box-shadow:none!important;break-inside:avoid}
- body.print-report .report-card,.report-balance,.report-section{break-inside:avoid;box-shadow:none!important}
- body.print-report .report-grid{grid-template-columns:repeat(2,1fr)!important}
+ @page{size:A4 portrait;margin:10mm}
+ html,body{background:#fff!important;margin:0!important;padding:0!important;width:100%!important;min-width:0!important}
+ body.print-report .app{display:block!important;width:100%!important;min-height:0!important;background:#fff!important;overflow:visible!important}
+ body.print-report .topbar,
+ body.print-report .tabs,
+ body.print-report .mobile-drawer,
+ body.print-report .top-actions,
+ body.print-report .page-head .back-btn,
+ body.print-report .page-head .actions,
+ body.print-report #toast,
+ body.print-report .modal{display:none!important}
+ body.print-report main{display:block!important;width:100%!important;max-width:none!important;margin:0!important;padding:0!important;background:#fff!important;overflow:visible!important}
+ body.print-report #content{display:block!important;width:100%!important;max-width:none!important;margin:0!important;padding:0!important}
+ body.print-report .page-head{display:block!important;margin:0 0 8px!important;padding:0!important;border:0!important}
+ body.print-report .page-head .page-title-group h1{font-size:20px!important;margin:0!important}
+ body.print-report .report-hero{box-shadow:none!important;break-inside:avoid;padding:12px!important;margin-bottom:8px!important}
+ body.print-report .report-hero h2{font-size:18px!important}
+ body.print-report .report-hero p{font-size:11px!important}
+ body.print-report .report-grid{grid-template-columns:repeat(2,1fr)!important;gap:6px!important;margin-bottom:8px!important}
+ body.print-report .report-card{padding:9px!important;border-radius:10px!important;box-shadow:none!important;break-inside:avoid}
+ body.print-report .report-card span{font-size:10px!important}
+ body.print-report .report-card strong{font-size:16px!important;margin-top:3px!important}
+ body.print-report .report-balance{padding:10px!important;margin-bottom:8px!important;border-radius:10px!important;box-shadow:none!important;break-inside:avoid}
+ body.print-report .report-balance .label{font-size:10px!important}
+ body.print-report .report-balance strong{font-size:20px!important}
+ body.print-report .report-section{padding:8px!important;border-radius:10px!important;box-shadow:none!important;break-inside:avoid}
  body.print-report .report-section .table-wrap{overflow:visible!important}
+ body.print-report .report-section .table{font-size:10px!important}
+ body.print-report .report-section .table th,body.print-report .report-section .table td{padding:5px 6px!important}
 }
