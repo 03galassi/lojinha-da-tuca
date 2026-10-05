@@ -328,3 +328,18 @@ input,select,textarea{width:100%;border:1px solid #cfd8dc;border-radius:7px;padd
 .product-gender-highlight{display:block!important;visibility:visible!important;position:relative!important;z-index:3!important}
 .product-gender-highlight label{display:block!important}
 .product-gender-highlight select{display:block!important;visibility:visible!important;min-height:46px!important;width:100%!important}
+
+/* V24 — padrão visual único para todos os campos de cadastro */
+.field{background:#f7f2ff;border:2px solid #e7dcfb;border-radius:12px;padding:10px 12px;transition:.15s ease}
+.field:focus-within{border-color:#7c3aed;box-shadow:0 0 0 3px rgba(124,58,237,.10);background:#fbf9ff}
+.field label{font-size:13px!important;color:#24105f!important;font-weight:800!important;margin:0 0 6px!important}
+.field input,.field select,.field textarea{border:1.5px solid #cdb9ef!important;border-radius:9px!important;background:#fff!important;color:#263238;padding:11px 12px!important;min-height:44px;outline:none;box-shadow:none}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:#7c3aed!important;box-shadow:0 0 0 2px rgba(124,58,237,.10)!important}
+.field textarea{min-height:92px}
+.modal-card>.grid2,.modal-card>.grid3{gap:12px}
+.modal-card>.field{margin-top:10px}
+@media(max-width:800px){
+  .field{padding:10px;border-radius:12px}
+  .field label{font-size:13px!important}
+  .field input,.field select,.field textarea{min-height:46px;padding:12px!important;border-radius:10px!important;font-size:16px}
+}
