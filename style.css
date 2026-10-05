@@ -357,3 +357,6 @@ input,select,textarea{width:100%;border:1px solid #cfd8dc;border-radius:7px;padd
 .product-search-option span{display:flex;flex-direction:column;min-width:0}.product-search-option b{font-size:14px}.product-search-option small{font-size:11px;color:#756a86;margin-top:2px}.product-search-option strong{font-size:13px;color:#4c1d95;text-align:right;white-space:nowrap}.product-search-option strong small{display:block}
 .product-search-empty{padding:14px;text-align:center;color:#756a86;font-size:13px}.row-late td{color:#c62828!important;font-weight:700}.row-late td .status.bad{color:#c62828!important}
 #f_original_price{background:#f1edf7!important;color:#6b5c7d!important}
+
+/* V29 — esconder corretamente a lista de produtos após a seleção */
+.product-search-results.hidden{display:none!important;visibility:hidden!important;pointer-events:none!important}
