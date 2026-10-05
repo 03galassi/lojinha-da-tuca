@@ -1,3 +1,4 @@
+// V43 - removido botão duplicado de importação local; Google Drive é o caminho de restauração.
 const KEY="lojinha_tuca_web_v1";
 const UI_VERSION="38";
 const $=s=>document.querySelector(s);
@@ -525,10 +526,78 @@ function exportCsv(){
  const rows=[["Indicador","Valor"],["Total vendido",db.sales.reduce((s,x)=>s+Number(x.total||0),0)],["Total recebido",db.sales.reduce((s,x)=>s+Number(x.paid||0),0)],["Estoque a preço de venda",stock],["A receber",rec],["A pagar",pay],["Estoque + A receber - A pagar",stock+rec-pay]];
  const csv=rows.map(r=>r.map(x=>`"${String(x).replaceAll('"','""')}"`).join(";")).join("\n");download("relatorio_tuca.csv",new Blob(["\ufeff"+csv],{type:"text/csv;charset=utf-8"}))}
 function download(name,blob){const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
+function googleDriveClientId(){
+  return localStorage.getItem('tuca_google_client_id')||'';
+}
+function loadGoogleIdentity(){
+  return new Promise((resolve,reject)=>{
+    if(window.google?.accounts?.oauth2)return resolve();
+    const old=document.getElementById('googleIdentityScript');
+    if(old){old.addEventListener('load',()=>resolve());old.addEventListener('error',reject);return;}
+    const s=document.createElement('script');s.id='googleIdentityScript';s.src='https://accounts.google.com/gsi/client';s.onload=()=>resolve();s.onerror=reject;document.head.appendChild(s);
+  });
+}
+function askGoogleClientId(){
+  let id=googleDriveClientId();
+  if(!id){
+    id=prompt('Cole aqui o Client ID do Google OAuth da Lojinha da Tuca.\n\nExemplo: 1234567890-xxxxxxxxxxxxxxxx.apps.googleusercontent.com');
+    if(!id)return '';
+    id=id.trim();
+    if(!/\.apps\.googleusercontent\.com$/.test(id))return alert('Client ID inválido. Ele deve terminar em .apps.googleusercontent.com'),'';
+    localStorage.setItem('tuca_google_client_id',id);
+  }
+  return id;
+}
+async function googleDriveToken(){
+  const clientId=askGoogleClientId(); if(!clientId)return null;
+  await loadGoogleIdentity();
+  return await new Promise((resolve,reject)=>{
+    const tokenClient=google.accounts.oauth2.initTokenClient({client_id:clientId,scope:'https://www.googleapis.com/auth/drive.file',callback:(resp)=>{if(resp.error)reject(new Error(resp.error));else resolve(resp.access_token)}});
+    tokenClient.requestAccessToken({prompt:''});
+  });
+}
+async function googleDriveBackup(){
+  try{
+    toast('Conectando ao Google Drive...');
+    const token=await googleDriveToken(); if(!token)return;
+    const content=JSON.stringify({...db, backup_created_at:new Date().toISOString()},null,2);
+    const metadata={name:'Lojinha_da_Tuca_Backup.json',mimeType:'application/json'};
+    const q=encodeURIComponent("name='Lojinha_da_Tuca_Backup.json' and trashed=false");
+    const found=await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&spaces=drive&fields=files(id,name)`,{headers:{Authorization:`Bearer ${token}`} });
+    if(!found.ok)throw new Error('Falha ao consultar o Google Drive.');
+    const list=await found.json();
+    const boundary='tuca_boundary_'+Date.now();
+    const body='--'+boundary+'\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n'+JSON.stringify(metadata)+'\r\n--'+boundary+'\r\nContent-Type: application/json\r\n\r\n'+content+'\r\n--'+boundary+'--';
+    let url='https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,modifiedTime';
+    let method='POST';
+    if(list.files?.length){method='PATCH';url=`https://www.googleapis.com/upload/drive/v3/files/${list.files[0].id}?uploadType=multipart&fields=id,name,modifiedTime`;}
+    const r=await fetch(url,{method,headers:{Authorization:`Bearer ${token}`,'Content-Type':`multipart/related; boundary=${boundary}`},body});
+    if(!r.ok)throw new Error(await r.text());
+    toast('Backup salvo no Google Drive ✓');
+  }catch(e){console.error(e);alert('Não foi possível salvar no Google Drive.\n\n'+(e.message||e));}
+}
+async function googleDriveRestore(){
+  try{
+    toast('Conectando ao Google Drive...');
+    const token=await googleDriveToken(); if(!token)return;
+    const q=encodeURIComponent("name='Lojinha_da_Tuca_Backup.json' and trashed=false");
+    const found=await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&spaces=drive&orderBy=modifiedTime desc&fields=files(id,name,modifiedTime)`,{headers:{Authorization:`Bearer ${token}`} });
+    if(!found.ok)throw new Error('Falha ao consultar o Google Drive.');
+    const list=await found.json();
+    if(!list.files?.length)return alert('Nenhum backup da Lojinha da Tuca foi encontrado no Google Drive.');
+    const id=list.files[0].id;
+    if(!confirm('Restaurar o backup mais recente do Google Drive? Os dados atuais desta loja serão substituídos.'))return;
+    const r=await fetch(`https://www.googleapis.com/drive/v3/files/${id}?alt=media`,{headers:{Authorization:`Bearer ${token}`} });
+    if(!r.ok)throw new Error('Não foi possível baixar o backup.');
+    const x=await r.json();
+    if(!x.products||!x.sales||!x.clients)throw new Error('O arquivo encontrado não é um backup válido da Lojinha da Tuca.');
+    delete x.backup_created_at; db=x; save(); render(); toast('Backup restaurado do Google Drive ✓');
+  }catch(e){console.error(e);alert('Não foi possível restaurar o backup.\n\n'+(e.message||e));}
+}
+
 $("#backupBtn").onclick=()=>download("backup_lojinhas_da_tuca.json",new Blob([JSON.stringify(db,null,2)],{type:"application/json"}));
-$("#restoreFile").onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const x=JSON.parse(r.result);if(!x.products||!x.sales)throw 0;db=x;save();render();toast("Backup importado")}catch(_){alert("Arquivo de backup inválido.")}};r.readAsText(f);e.target.value=""};
 $("#brand").ondblclick=()=>{const n=prompt("Nome do cabeçalho:",db.title);if(n&&n.trim()){db.title=n.trim();save();render()}};
-window.newProduct=newProduct;window.editProduct=editProduct;window.deleteProduct=deleteProduct;window.restock=restock;window.newClient=newClient;window.editClient=editClient;window.deleteClient=deleteClient;window.clientDetails=clientDetails;window.newSale=newSale;window.saleDetails=saleDetails;window.payment=payment;window.deleteSale=deleteSale;window.whatsapp=whatsapp;window.newSupplier=newSupplier;window.editSupplier=editSupplier;window.deleteSupplier=deleteSupplier;window.supplierDetails=supplierDetails;window.newPayable=newPayable;window.editPayable=editPayable;window.payableDetails=payableDetails;window.supplierPayment=supplierPayment;window.withdrawal=withdrawal;window.go=go;window.closeModal=closeModal;window.saveProduct=saveProduct;window.saveClient=saveClient;window.saveSale=saveSale;window.savePayment=savePayment;window.saveSupplier=saveSupplier;window.savePayable=savePayable;window.saveSupplierPayment=saveSupplierPayment;window.saveWithdrawal=saveWithdrawal;window.exportCsv=exportCsv;window.exportPdf=exportPdf;window.handleReceiptFile=handleReceiptFile;
+window.newProduct=newProduct;window.editProduct=editProduct;window.deleteProduct=deleteProduct;window.restock=restock;window.newClient=newClient;window.editClient=editClient;window.deleteClient=deleteClient;window.clientDetails=clientDetails;window.newSale=newSale;window.saleDetails=saleDetails;window.payment=payment;window.deleteSale=deleteSale;window.whatsapp=whatsapp;window.newSupplier=newSupplier;window.editSupplier=editSupplier;window.deleteSupplier=deleteSupplier;window.supplierDetails=supplierDetails;window.newPayable=newPayable;window.editPayable=editPayable;window.payableDetails=payableDetails;window.supplierPayment=supplierPayment;window.withdrawal=withdrawal;window.go=go;window.closeModal=closeModal;window.saveProduct=saveProduct;window.saveClient=saveClient;window.saveSale=saveSale;window.savePayment=savePayment;window.saveSupplier=saveSupplier;window.savePayable=savePayable;window.saveSupplierPayment=saveSupplierPayment;window.saveWithdrawal=saveWithdrawal;window.exportCsv=exportCsv;window.exportPdf=exportPdf;window.handleReceiptFile=handleReceiptFile;window.googleDriveBackup=googleDriveBackup;window.googleDriveRestore=googleDriveRestore;
 render();
 
 
@@ -540,7 +609,34 @@ $('#mobileDrawer')?.addEventListener('click',e=>{
   if(b){page=b.dataset.page;closeMobileMenu();render();}
 });
 $('#mobileBackupBtn')?.addEventListener('click',()=>$('#backupBtn')?.click());
-$('#mobileRestoreFile')?.addEventListener('change',e=>{
-  const src=e.target.files?.[0]; if(!src)return;
-  const r=new FileReader(); r.onload=()=>{try{db=JSON.parse(r.result);save();render();toast('Backup importado');}catch(err){alert('Backup inválido.');}}; r.readAsText(src); e.target.value='';
-});
+$('#driveBackupBtn')?.addEventListener('click',googleDriveBackup);
+$('#driveRestoreBtn')?.addEventListener('click',googleDriveRestore);
+$('#mobileDriveBackupBtn')?.addEventListener('click',googleDriveBackup);
+$('#mobileDriveRestoreBtn')?.addEventListener('click',googleDriveRestore);
+
+// V41 — Aparência da loja
+function currentTheme(){return localStorage.getItem('tuca_theme')||'original'}
+function applyTheme(name){
+  ['theme-purple','theme-blue','theme-green','theme-dark','theme-light'].forEach(c=>document.body.classList.remove(c));
+  if(name!=='original') document.body.classList.add('theme-'+name);
+  localStorage.setItem('tuca_theme',name);
+}
+function appearanceModal(){
+  const cur=currentTheme();
+  $('#modalCard').innerHTML=`<div class="modal-head"><h2>🎨 Aparência</h2><button class="icon-btn" onclick="closeModal()">✕</button></div>
+  <p class="muted">Escolha o visual da Lojinha da Tuca. As funcionalidades e os dados permanecem os mesmos.</p>
+  <div class="appearance-options">
+   <button class="appearance-choice" onclick="setAppearance('original')"><div class="appearance-swatch swatch-original"></div><strong>Original</strong><span>${cur==='original'?'✓ Selecionado':''}</span></button>
+   <button class="appearance-choice" onclick="setAppearance('purple')"><div class="appearance-swatch swatch-purple"></div><strong>Roxo Tuca</strong><span>${cur==='purple'?'✓ Selecionado':''}</span></button>
+   <button class="appearance-choice" onclick="setAppearance('blue')"><div class="appearance-swatch swatch-blue"></div><strong>Azul</strong><span>${cur==='blue'?'✓ Selecionado':''}</span></button>
+   <button class="appearance-choice" onclick="setAppearance('green')"><div class="appearance-swatch swatch-green"></div><strong>Verde</strong><span>${cur==='green'?'✓ Selecionado':''}</span></button>
+   <button class="appearance-choice" onclick="setAppearance('dark')"><div class="appearance-swatch swatch-dark"></div><strong>Escuro</strong><span>${cur==='dark'?'✓ Selecionado':''}</span></button>
+   <button class="appearance-choice" onclick="setAppearance('light')"><div class="appearance-swatch swatch-light"></div><strong>Claro</strong><span>${cur==='light'?'✓ Selecionado':''}</span></button>
+  </div>`;
+  $('#modal').classList.remove('hidden');
+}
+function setAppearance(name){applyTheme(name);appearanceModal();toast('Aparência alterada ✓')}
+window.setAppearance=setAppearance; window.appearanceModal=appearanceModal;
+applyTheme(currentTheme());
+$('#appearanceBtn')?.addEventListener('click',appearanceModal);
+$('#mobileAppearanceBtn')?.addEventListener('click',()=>{closeMobileMenu();appearanceModal()});

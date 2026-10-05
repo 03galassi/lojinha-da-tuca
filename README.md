@@ -1,3 +1,1 @@
-Lojinha da Tuca WEB V36
-
-Ações de Contas a Pagar dimensionadas automaticamente pelo texto, mantendo os quatro botões na horizontal.
+V43 - Aparência completa mantida. Removido o botão duplicado "Importar backup"; permanecem Exportar backup, Backup Google Drive e Restaurar Google Drive.
