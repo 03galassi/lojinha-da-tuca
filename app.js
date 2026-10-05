@@ -123,10 +123,10 @@ function recentSales(){
 function products(){
  let q=($("#pq")?.value||"").toLowerCase().trim();
  const rows=db.products.filter(p=>(`${p.kind||""} ${p.description||""}`).toLowerCase().includes(q)).map(p=>`<tr>
- <td>${esc(p.code)}</td><td>${esc(p.kind)}</td><td>${esc(p.description)}</td><td>${esc(p.size)}</td><td>${money(p.cost)}</td><td>${Number(p.margin||0).toFixed(2)}%</td><td class="money">${money(p.sale)}</td><td>${p.stock}</td>
+ <td>${esc(p.code)}</td><td>${esc(p.kind)}</td><td>${esc(p.gender||"Não informado")}</td><td>${esc(p.description)}</td><td>${esc(p.size)}</td><td>${money(p.cost)}</td><td>${Number(p.margin||0).toFixed(2)}%</td><td class="money">${money(p.sale)}</td><td>${p.stock}</td>
  <td class="nowrap"><button class="icon-btn" onclick="editProduct(${p.id})">Editar</button> <button class="icon-btn" onclick="restock(${p.id})">Repor</button> <button class="icon-btn" onclick="deleteProduct(${p.id})">Excluir</button></td></tr>`);
  return pageHead("Produtos",`<button class="btn primary" onclick="newProduct()">+ Novo produto</button>`) +
- `<div class="panel">${searchBox("pq","Buscar produto por tipo ou descrição...",q)}${table(["Código","Tipo","Descrição","Tamanho","Custo","Margem","Venda","Estoque","Ações"],rows.join(""))}</div>`;
+ `<div class="panel">${searchBox("pq","Buscar produto por tipo ou descrição...",q)}${table(["Código","Tipo","Gênero","Descrição","Tamanho","Custo","Margem","Venda","Estoque","Ações"],rows.join(""))}</div>`;
 }
 function productForm(p={}){
  const margins=[["30","30%"],["50","50%"],["80","80%"],["100","100%"],["Outra","Outra"]];
@@ -134,7 +134,7 @@ function productForm(p={}){
  const marginKnown=margins.some(o=>o[0]===savedMargin);
  const marginField=selectField("Margem %","margin",margins,marginKnown?savedMargin:"50");
  const body=`<div class="grid2">${formField("Código","code",p.code)}${selectField("Tipo","kind",[["Blusa","Blusa"],["Camiseta","Camiseta"],["Calça Jeans","Calça Jeans"],["Shorts","Shorts"],["Vestido","Vestido"],["Saia","Saia"],["Conjunto","Conjunto"],["Outro","Outro"]],p.kind)}
- ${formField("Descrição","description",p.description)}${formField("Tamanho","size",p.size)}
+ ${selectField("Gênero","gender",[["","Selecione..."],["Masculino","Masculino"],["Feminino","Feminino"]],p.gender||"")}${formField("Descrição","description",p.description)}${formField("Tamanho","size",p.size)}
  ${formField("Custo","cost",p.cost,"number")}${marginField}
  ${formField("Preço de venda","sale",p.sale,"number")}${formField("Estoque","stock",p.stock||0,"number")}</div>
  <div id="customMarginWrap" class="field" style="margin-top:10px;display:none"><label>Margem personalizada %</label><input id="f_customMargin" type="number" step="0.01" min="0" value="${marginKnown?"":esc(savedMargin)}"></div>
@@ -162,7 +162,7 @@ function saveProduct(id){
  const marginValue=v("margin")==="Outra"?(Number($("#f_customMargin")?.value)||0):Number(v("margin"))||0;
  const costValue=Number(v("cost").replace(",","."))||0;
  const saleValue=Number(v("sale").replace(",","."))||0;
- Object.assign(p,{code:v("code"),kind:v("kind"),description:v("description"),size:v("size"),cost:costValue,margin:marginValue,sale:saleValue,stock:Math.max(0,parseInt(v("stock"))||0),observation:$("#f_observation").value});
+ Object.assign(p,{code:v("code"),kind:v("kind"),gender:v("gender"),description:v("description"),size:v("size"),cost:costValue,margin:marginValue,sale:saleValue,stock:Math.max(0,parseInt(v("stock"))||0),observation:$("#f_observation").value});
  if(!id)db.products.push(p);save();closeModal();render();toast("Produto salvo")}
 function deleteProduct(id){if(db.saleItems.some(x=>Number(x.product_id)===Number(id)))return alert("Este produto possui histórico de vendas e não pode ser excluído.");if(confirm("Excluir este produto?")){db.products=db.products.filter(x=>x.id!==id);save();render()}}
 function restock(id){const n=prompt("Quantidade a adicionar:","1");const q=parseInt(n);if(q>0){const p=find(db.products,id);p.stock+=q;p.exhausted_at=null;save();render();toast("Estoque atualizado")}}
