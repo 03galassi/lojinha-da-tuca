@@ -28,7 +28,11 @@ $("#modal").addEventListener("click",e=>e.stopPropagation());
 document.addEventListener("keydown",e=>{if(e.key==="Escape")e.preventDefault()});
 function formField(label,name,value="",type="text"){return `<div class="field"><label>${label}</label><input class="form-control" id="f_${name}" type="${type}" value="${esc(value)}"></div>`}
 function selectField(label,name,opts,value=""){return `<div class="field"><label>${label}</label><select class="form-control" id="f_${name}">${opts.map(o=>`<option ${String(o[0])===String(value)?"selected":""} value="${esc(o[0])}">${esc(o[1])}</option>`).join("")}</select></div>`}
-function searchableProductField(products,value=""){const selected=find(products,value);const current=selected?`${selected.description||""} / ${selected.size||"-"} — ${money(selected.sale)} — estoque ${selected.stock}`:"";const options=products.map(p=>`<option value="${esc(`${p.description||""} / ${p.size||"-"} — ${money(p.sale)} — estoque ${p.stock}`)}"></option>`).join("");return `<div class="field"><label>Produto</label><input class="form-control searchable-product" id="f_product_search" type="text" list="productOptions" autocomplete="off" placeholder="Digite para buscar o produto..." value="${esc(current)}"><datalist id="productOptions">${options}</datalist><input id="f_product_id" type="hidden" value="${esc(value||"")}"><small class="field-help">Digite parte do tipo ou descrição para localizar qualquer produto disponível.</small></div>`}
+function searchableProductField(products,value=""){
+ const selected=find(products,value);
+ const current=selected?`${selected.description||""} / ${selected.size||"-"} — ${money(selected.sale)} — estoque ${selected.stock}`:"";
+ return `<div class="field product-search-field"><label>Produto</label><input class="form-control searchable-product" id="f_product_search" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Digite o produto..." value="${esc(current)}"><input id="f_product_id" type="hidden" value="${esc(value||"")}"><div id="productSearchResults" class="product-search-results hidden"></div><small class="field-help">Digite e a busca será feita na hora por tipo ou descrição.</small></div>`
+}
 function pageHead(title,actions=""){return `<div class="page-head"><div class="page-title-group"><button class="btn back-btn" onclick="go('dashboard')">← Voltar</button><h1>${title}</h1></div><div class="actions">${actions}</div></div>`}
 function table(headers,rows,empty="Nenhum registro"){return `<div class="table-wrap"><table class="table"><thead><tr>${headers.map(h=>`<th>${h}</th>`).join("")}</tr></thead><tbody>${rows||`<tr><td colspan="${headers.length}" class="empty">${empty}</td></tr>`}</tbody></table></div>`}
 function searchBox(id,placeholder,value){return `<div class="toolbar search-toolbar"><input id="${id}" class="search" type="text" inputmode="search" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="${placeholder}" value="${esc(value||"")}" oninput="render()"><span class="search-hint">⌕</span></div>`}
@@ -194,7 +198,7 @@ function deleteClient(id){if(db.sales.some(s=>Number(s.client_id)===Number(id)))
 
 function sales(){
  const q=(document.getElementById("sq")?.value||"").toLowerCase().trim();
- const rows=[...db.sales].sort((a,b)=>b.id-a.id).filter(s=>{const c=find(db.clients,s.client_id);const text=`${s.sale_date} ${c?.name||""} ${s.payment||""} ${s.due_date||""}`.toLowerCase();return text.includes(q)}).map(s=>{const c=find(db.clients,s.client_id),bal=Math.max(0,s.total-s.paid);return `<tr onclick="saleDetails(${s.id})"><td>${s.sale_date}</td><td>${esc(c?.name||"Não informado")}</td><td>${money(s.total)}</td><td>${esc(s.payment||"")}</td><td>${s.installments||1}</td><td>${s.due_date||""}</td><td>${money(s.paid)}</td><td class="money">${money(bal)}</td><td class="nowrap"><button class="icon-btn" onclick="event.stopPropagation();saleDetails(${s.id})">Detalhes</button> <button class="icon-btn" onclick="event.stopPropagation();payment(${s.id})">Pagamento</button> <button class="icon-btn" onclick="event.stopPropagation();deleteSale(${s.id})">Excluir</button></td></tr>`});
+ const rows=[...db.sales].sort((a,b)=>b.id-a.id).filter(s=>{const c=find(db.clients,s.client_id);const text=`${s.sale_date} ${c?.name||""} ${s.payment||""} ${s.due_date||""}`.toLowerCase();return text.includes(q)}).map(s=>{const c=find(db.clients,s.client_id),bal=Math.max(0,s.total-s.paid);return `<tr class="${s.due_date&&s.due_date<today()&&bal>0?"row-late":""}" onclick="saleDetails(${s.id})"><td>${s.sale_date}</td><td>${esc(c?.name||"Não informado")}</td><td>${money(s.total)}</td><td>${esc(s.payment||"")}</td><td>${s.installments||1}</td><td>${s.due_date||""}</td><td>${money(s.paid)}</td><td class="money">${money(bal)}</td><td class="nowrap"><button class="icon-btn" onclick="event.stopPropagation();saleDetails(${s.id})">Detalhes</button> <button class="icon-btn" onclick="event.stopPropagation();payment(${s.id})">Pagamento</button> <button class="icon-btn" onclick="event.stopPropagation();deleteSale(${s.id})">Excluir</button></td></tr>`});
  return pageHead("Vendas",`<button class="btn primary" onclick="newSale()">+ Nova venda</button>`) + `<div class="panel">${searchBox("sq","Buscar por cliente, data ou forma de pagamento...",q)}${table(["Data","Cliente","Total","Pagamento","Parcelas","Vencimento","Pago","Saldo","Ações"],rows.join(""))}</div>`;
 }
 function saleDetails(id){
@@ -203,23 +207,66 @@ function saleDetails(id){
  modal("Detalhes da venda",`<p><b>Data:</b> ${s.sale_date} &nbsp; <b>Cliente:</b> ${esc(c?.name||"Não informado")}</p><p><b>Pagamento:</b> ${esc(s.payment||"")} &nbsp; <b>Parcelas:</b> ${s.installments||1} &nbsp; <b>Vencimento:</b> ${s.due_date||""}</p><p><b>Total:</b> ${money(s.total)} &nbsp; <b>Recebido:</b> ${money(s.paid)} &nbsp; <b>Saldo:</b> ${money(Math.max(0,s.total-s.paid))}</p><div class="panel"><table><thead><tr><th>Produto</th><th>Tamanho</th><th>Qtd.</th><th>Preço</th><th>Subtotal</th></tr></thead><tbody>${lista||'<tr><td colspan="5">Nenhum item</td></tr>'}</tbody></table></div>`,`<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">Fechar</button></div>`)
 }
 function newSale(){
- if(!db.products.some(p=>p.stock>0))return alert("Não há produtos disponíveis para venda.");
+ if(!db.products.some(p=>Number(p.stock)>0))return alert("Não há produtos disponíveis para venda.");
  const clients=[["","Selecione..."],...db.clients.map(c=>[c.id,c.name])];
  const prods=[...db.products.filter(p=>Number(p.stock)>0)];
- modal("Nova venda",`<div class="grid2">${selectField("Cliente","client_id",clients)}${searchableProductField(prods,"")}${formField("Quantidade","qty",1,"number")}${selectField("Pagamento","payment",[["Crédito","Crédito"],["À vista","À vista"]],"Crédito")}${selectField("Parcelas","installments",[["1","1x"],["2","2x"],["3","3x"],["4","4x"],["5","5x"],["6","6x"]],1)}${formField("Vencimento","due_date",today(),"date")}</div><div class="panel" style="margin-top:12px"><b>Total: <span id="saleTotal">${money(0)}</span></b></div>`, `<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">← Voltar</button><button class="btn primary" onclick="saveSale()">Confirmar venda</button></div>`);
- const ps=$("#f_product_search");
- ps.addEventListener("input",()=>{const txt=ps.value.trim();const match=prods.find(p=>`${p.description||""} / ${p.size||"-"} — ${money(p.sale)} — estoque ${p.stock}`===txt) || prods.find(p=>(`${p.description||""} ${p.kind||""} ${p.size||""}`).toLowerCase().includes(txt.toLowerCase()) && txt.length>0);$("#f_product_id").value=match?match.id:"";calcSale()});
- $("#f_qty").addEventListener("input",calcSale);calcSale()
+ modal("Nova venda",`<div class="grid2">${selectField("Cliente","client_id",clients)}${searchableProductField(prods,"")}${formField("Quantidade","qty",1,"number")}${formField("Preço original","original_price",0,"number")}${formField("Valor da venda","sale_price",0,"number")}${formField("Desconto %","discount",0,"number")}${selectField("Pagamento","payment",[["Crédito","Crédito"],["À vista","À vista"]],"Crédito")}${selectField("Parcelas","installments",[["1","1x"],["2","2x"],["3","3x"],["4","4x"],["5","5x"],["6","6x"]],1)}${formField("Vencimento","due_date",today(),"date")}</div><div class="panel" style="margin-top:12px"><b>Total da venda: <span id="saleTotal">${money(0)}</span></b></div>`, `<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">← Voltar</button><button class="btn primary" onclick="saveSale()">Confirmar venda</button></div>`);
+ const ps=$("#f_product_search"), results=$("#productSearchResults");
+ function showResults(term=""){
+   const q=term.trim().toLowerCase();
+   const matches=prods.filter(p=>`${p.kind||""} ${p.description||""} ${p.size||""}`.toLowerCase().includes(q));
+   results.innerHTML=matches.length?matches.map(p=>`<button type="button" class="product-search-option" onclick="selectSaleProduct(${p.id})"><span><b>${esc(p.description||"Sem descrição")}</b><small>${esc(p.kind||"")}${p.size?` • Tam. ${esc(p.size)}`:""}</small></span><strong>${money(p.sale)}<small> estoque: ${p.stock}</small></strong></button>`).join(""): `<div class="product-search-empty">Nenhum produto encontrado.</div>`;
+   results.classList.remove("hidden");
+ }
+ ps.addEventListener("focus",()=>showResults(ps.value));
+ ps.addEventListener("input",()=>{ $("#f_product_id").value=""; $("#f_original_price").value="0"; $("#f_sale_price").value="0"; $("#f_discount").value="0"; showResults(ps.value); calcSale(); });
+ document.addEventListener("click",function closeProductSearch(e){if(!e.target.closest(".product-search-field")){results.classList.add("hidden");document.removeEventListener("click",closeProductSearch)}});
+ ["qty"].forEach(id=>$("#f_"+id).addEventListener("input",calcSale));
+ $("#f_sale_price").addEventListener("input",()=>updateSaleFromPrice());
+ $("#f_discount").addEventListener("input",()=>updateSaleFromDiscount());
+ calcSale();
 }
-function calcSale(){const p=find(db.products,$("#f_product_id").value);$("#saleTotal").textContent=money((p?.sale||0)*(parseInt($("#f_qty").value)||0))}
+function selectSaleProduct(id){
+ const p=find(db.products,id); if(!p)return;
+ $("#f_product_id").value=id;
+ $("#f_product_search").value=`${p.description||""} / ${p.size||"-"} — ${money(p.sale)} — estoque ${p.stock}`;
+ $("#f_original_price").value=Number(p.sale||0).toFixed(2);
+ $("#f_sale_price").value=Number(p.sale||0).toFixed(2);
+ $("#f_discount").value="0";
+ $("#productSearchResults")?.classList.add("hidden");
+ calcSale();
+}
+function calcSale(){
+ const p=find(db.products,$("#f_product_id")?.value);
+ const price=Number($("#f_sale_price")?.value)||0;
+ if($("#f_original_price"))$("#f_original_price").value=p?Number(p.sale||0).toFixed(2):"0";
+ if($("#saleTotal"))$("#saleTotal").textContent=money(price*(parseInt($("#f_qty")?.value)||0));
+}
+function updateSaleFromPrice(){
+ const original=Number($("#f_original_price")?.value)||0;
+ let price=Number(String($("#f_sale_price")?.value||0).replace(",","."))||0;
+ if(price<0)price=0;
+ if(original>0){let d=((original-price)/original)*100;if(d<0)d=0;$("#f_discount").value=d.toFixed(2)}
+ calcSale();
+}
+function updateSaleFromDiscount(){
+ const original=Number($("#f_original_price")?.value)||0;
+ let d=Number(String($("#f_discount")?.value||0).replace(",","."))||0;
+ d=Math.max(0,Math.min(100,d));
+ $("#f_discount").value=d;
+ $("#f_sale_price").value=(original*(1-d/100)).toFixed(2);
+ calcSale();
+}
 function saveSale(){
  const p=find(db.products,$("#f_product_id").value),q=parseInt($("#f_qty").value)||0,cid=$("#f_client_id").value;
  if(!p||q<=0)return alert("Selecione produto e quantidade.");
  if(q>p.stock)return alert(`Estoque disponível: ${p.stock}.`);
  if(!cid)return alert("Para registrar a venda, selecione um cliente cadastrado.");
- const total=q*Number(p.sale), pay=$("#f_payment").value, paid=pay==="À vista"?total:0;
- const s={id:nextId(db.sales),client_id:Number(cid),sale_date:today(),total,paid,payment:pay,installments:parseInt($("#f_installments").value)||1,due_date:$("#f_due_date").value};
- db.sales.push(s);db.saleItems.push({id:nextId(db.saleItems),sale_id:s.id,product_id:p.id,qty:q,price:p.sale});p.stock-=q;if(p.stock===0)p.exhausted_at=today();save();closeModal();render();toast("Venda registrada")}
+ const unitPrice=Math.max(0,Number($("#f_sale_price").value)||0), total=q*unitPrice;
+ if(unitPrice<=0)return alert("Informe o valor da venda.");
+ const pay=$("#f_payment").value, paid=pay==="À vista"?total:0;
+ const s={id:nextId(db.sales),client_id:Number(cid),sale_date:today(),total,paid,payment:pay,installments:parseInt($("#f_installments").value)||1,due_date:$("#f_due_date").value,discount:Number($("#f_discount").value)||0};
+ db.sales.push(s);db.saleItems.push({id:nextId(db.saleItems),sale_id:s.id,product_id:p.id,qty:q,price:unitPrice});p.stock-=q;if(p.stock===0)p.exhausted_at=today();save();closeModal();render();toast("Venda registrada")}
 function deleteSale(id){if(!confirm("Excluir a venda? O item voltará ao estoque e os pagamentos serão removidos."))return;db.saleItems.filter(x=>x.sale_id===id).forEach(it=>{const p=find(db.products,it.product_id);if(p)p.stock+=Number(it.qty)});db.saleItems=db.saleItems.filter(x=>x.sale_id!==id);db.payments=db.payments.filter(x=>x.sale_id!==id);db.sales=db.sales.filter(x=>x.id!==id);save();render();toast("Venda excluída")}
 function payment(id){
  const s=find(db.sales,id),bal=Math.max(0,s.total-s.paid);if(bal<=.005)return alert("Venda já quitada.");
@@ -230,7 +277,7 @@ function savePayment(id){const s=find(db.sales,id),bal=Math.max(0,s.total-s.paid
 function receivables(){
  const q=(document.getElementById("rq")?.value||"").toLowerCase().trim();
  const open=db.sales.filter(s=>s.total>s.paid);
- const rows=open.sort((a,b)=>(a.due_date||"").localeCompare(b.due_date||"")).filter(s=>{const c=find(db.clients,s.client_id);const late=s.due_date&&s.due_date<today();const text=`${c?.name||""} ${s.sale_date} ${s.due_date||""} ${late?"atrasado":"em aberto"}`.toLowerCase();return text.includes(q)}).map(s=>{const c=find(db.clients,s.client_id),bal=s.total-s.paid,late=s.due_date&&s.due_date<today();return `<tr><td>${esc(c?.name||"Não informado")}</td><td>${s.sale_date}</td><td>${s.due_date||""}</td><td>${money(s.total)}</td><td>${money(s.paid)}</td><td class="money">${money(bal)}</td><td><span class="status ${late?"bad":"open"}">${late?"ATRASADO":"EM ABERTO"}</span></td><td><button class="icon-btn" onclick="payment(${s.id})">Pagamento</button>${c?.phone?` <button class="icon-btn" onclick="whatsapp(${s.id})">WhatsApp</button>`:""}</td></tr>`});
+ const rows=open.sort((a,b)=>(a.due_date||"").localeCompare(b.due_date||"")).filter(s=>{const c=find(db.clients,s.client_id);const late=s.due_date&&s.due_date<today();const text=`${c?.name||""} ${s.sale_date} ${s.due_date||""} ${late?"atrasado":"em aberto"}`.toLowerCase();return text.includes(q)}).map(s=>{const c=find(db.clients,s.client_id),bal=s.total-s.paid,late=s.due_date&&s.due_date<today();return `<tr class="${late?"row-late":""}"><td>${esc(c?.name||"Não informado")}</td><td>${s.sale_date}</td><td>${s.due_date||""}</td><td>${money(s.total)}</td><td>${money(s.paid)}</td><td class="money">${money(bal)}</td><td><span class="status ${late?"bad":"open"}">${late?"ATRASADO":"EM ABERTO"}</span></td><td><button class="icon-btn" onclick="payment(${s.id})">Pagamento</button>${c?.phone?` <button class="icon-btn" onclick="whatsapp(${s.id})">WhatsApp</button>`:""}</td></tr>`});
  return pageHead("Contas a Receber") + `<div class="panel">${searchBox("rq","Buscar cliente, vencimento ou status...",q)}${table(["Cliente","Venda","Vencimento","Total","Pago","Saldo","Status","Ações"],rows.join(""))}</div>`;
 }
 function whatsapp(id){
@@ -268,7 +315,7 @@ function deleteSupplier(id){if(db.payables.some(p=>p.supplier_id===id))return al
 
 function payables(){
  const q=(document.getElementById("pq2")?.value||"").toLowerCase().trim();
- const rows=db.payables.sort((a,b)=>(a.due_date||"").localeCompare(b.due_date||"")).filter(p=>{const s=find(db.suppliers,p.supplier_id),bal=p.total-p.paid,late=p.due_date&&p.due_date<today();const text=`${s?.name||""} ${p.description||""} ${p.due_date||""} ${late?"atrasado":bal<=0?"pago":"em aberto"}`.toLowerCase();return text.includes(q)}).map(p=>{const s=find(db.suppliers,p.supplier_id),bal=p.total-p.paid,late=p.due_date&&p.due_date<today();return `<tr onclick="payableDetails(${p.id})"><td>${esc(s?.name||"Não informado")}</td><td>${esc(p.description)}</td><td>${p.due_date||""}</td><td>${p.installments>1?`${p.installment_number}/${p.installments}`:"1/1"}</td><td>${money(p.total)}</td><td>${money(p.paid)}</td><td class="money">${money(bal)}</td><td><span class="status ${bal<=0?"ok":late?"bad":"open"}">${bal<=0?"PAGO":late?"ATRASADO":"EM ABERTO"}</span></td><td><button class="icon-btn" onclick="event.stopPropagation();payableDetails(${p.id})">Detalhes</button>${bal>0?` <button class="icon-btn" onclick="event.stopPropagation();supplierPayment(${p.id})">Pagamento</button>`:""} <button class="icon-btn" onclick="event.stopPropagation();editPayable(${p.id})">Editar</button></td></tr>`});
+ const rows=db.payables.sort((a,b)=>(a.due_date||"").localeCompare(b.due_date||"")).filter(p=>{const s=find(db.suppliers,p.supplier_id),bal=p.total-p.paid,late=p.due_date&&p.due_date<today();const text=`${s?.name||""} ${p.description||""} ${p.due_date||""} ${late?"atrasado":bal<=0?"pago":"em aberto"}`.toLowerCase();return text.includes(q)}).map(p=>{const s=find(db.suppliers,p.supplier_id),bal=p.total-p.paid,late=p.due_date&&p.due_date<today();return `<tr class="${late&&bal>0?"row-late":""}" onclick="payableDetails(${p.id})"><td>${esc(s?.name||"Não informado")}</td><td>${esc(p.description)}</td><td>${p.due_date||""}</td><td>${p.installments>1?`${p.installment_number}/${p.installments}`:"1/1"}</td><td>${money(p.total)}</td><td>${money(p.paid)}</td><td class="money">${money(bal)}</td><td><span class="status ${bal<=0?"ok":late?"bad":"open"}">${bal<=0?"PAGO":late?"ATRASADO":"EM ABERTO"}</span></td><td><button class="icon-btn" onclick="event.stopPropagation();payableDetails(${p.id})">Detalhes</button>${bal>0?` <button class="icon-btn" onclick="event.stopPropagation();supplierPayment(${p.id})">Pagamento</button>`:""} <button class="icon-btn" onclick="event.stopPropagation();editPayable(${p.id})">Editar</button></td></tr>`});
  return pageHead("Contas a Pagar",`<button class="btn primary" onclick="newPayable()">+ Nova conta</button><button class="btn warn" onclick="withdrawal()">Saque</button>`) + `<div class="panel">${searchBox("pq2","Buscar fornecedor, descrição, vencimento ou status...",q)}${table(["Fornecedor","Descrição","Vencimento","Parcela","Total","Pago","Saldo","Status","Ações"],rows.join(""))}</div>`;
 }
 function payableDetails(id){

@@ -348,3 +348,12 @@ input,select,textarea{width:100%;border:1px solid #cfd8dc;border-radius:7px;padd
 .searchable-product{cursor:text !important}
 .field-help{display:block;margin-top:6px;color:#7b6b91;font-size:11px}
 #f_product_search::-webkit-calendar-picker-indicator{opacity:.55}
+
+/* V27 — busca instantânea de produtos e destaque de atrasados */
+.product-search-field{position:relative;z-index:20}
+.product-search-results{position:absolute;left:12px;right:12px;top:76px;max-height:280px;overflow-y:auto;background:#fff;border:2px solid #cdb9ef;border-radius:12px;box-shadow:0 12px 28px rgba(36,16,95,.18);z-index:1000;padding:5px}
+.product-search-option{width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;text-align:left;border:0;background:#fff;border-radius:9px;padding:10px 11px;color:#2d2340;cursor:pointer}
+.product-search-option:hover,.product-search-option:focus{background:#f5efff;outline:none}
+.product-search-option span{display:flex;flex-direction:column;min-width:0}.product-search-option b{font-size:14px}.product-search-option small{font-size:11px;color:#756a86;margin-top:2px}.product-search-option strong{font-size:13px;color:#4c1d95;text-align:right;white-space:nowrap}.product-search-option strong small{display:block}
+.product-search-empty{padding:14px;text-align:center;color:#756a86;font-size:13px}.row-late td{color:#c62828!important;font-weight:700}.row-late td .status.bad{color:#c62828!important}
+#f_original_price{background:#f1edf7!important;color:#6b5c7d!important}
