@@ -215,8 +215,9 @@ function newSale(){
  function showResults(term=""){
    const q=term.trim().toLowerCase();
    const matches=prods.filter(p=>`${p.kind||""} ${p.description||""} ${p.size||""}`.toLowerCase().includes(q));
-   results.innerHTML=matches.length?matches.map(p=>`<button type="button" class="product-search-option" onclick="selectSaleProduct(${p.id})"><span><b>${esc(p.description||"Sem descrição")}</b><small>${esc(p.kind||"")}${p.size?` • Tam. ${esc(p.size)}`:""}</small></span><strong>${money(p.sale)}<small> estoque: ${p.stock}</small></strong></button>`).join(""): `<div class="product-search-empty">Nenhum produto encontrado.</div>`;
+   results.innerHTML=matches.length?matches.map(p=>`<button type="button" class="product-search-option" onclick="event.preventDefault();event.stopPropagation();selectSaleProduct(${p.id})"><span><b>${esc(p.description||"Sem descrição")}</b><small>${esc(p.kind||"")}${p.size?` • Tam. ${esc(p.size)}`:""}</small></span><strong>${money(p.sale)}<small> estoque: ${p.stock}</small></strong></button>`).join(""): `<div class="product-search-empty">Nenhum produto encontrado.</div>`;
    results.classList.remove("hidden");
+   results.style.removeProperty("display");
  }
  ps.addEventListener("focus",()=>showResults(ps.value));
  ps.addEventListener("input",()=>{ $("#f_product_id").value=""; $("#f_original_price").value="0"; $("#f_sale_price").value="0"; $("#f_discount").value="0"; showResults(ps.value); calcSale(); });
@@ -239,7 +240,12 @@ function selectSaleProduct(id){
  $("#f_sale_price").value=Number(p.sale||0).toFixed(2);
  $("#f_discount").value="0";
  $("#f_discount_option").value="0";
- $("#productSearchResults")?.classList.add("hidden");
+ const results=$("#productSearchResults");
+ if(results){
+   results.classList.add("hidden");
+   results.style.setProperty("display","none","important");
+   results.innerHTML="";
+ }
  calcSale();
 }
 function calcSale(){

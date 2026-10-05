@@ -360,3 +360,7 @@ input,select,textarea{width:100%;border:1px solid #cfd8dc;border-radius:7px;padd
 
 /* V29 — esconder corretamente a lista de produtos após a seleção */
 .product-search-results.hidden{display:none!important;visibility:hidden!important;pointer-events:none!important}
+
+
+/* V30 — fechamento forçado da lista após selecionar produto */
+.product-search-results[style*="display: none"]{display:none!important;visibility:hidden!important;pointer-events:none!important}

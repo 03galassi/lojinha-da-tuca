@@ -1,1 +1,2 @@
-Lojinha da Tuca Web V25 — padronização real de todos os campos de cadastro com o mesmo visual do campo Gênero.
+Lojinha da Tuca WEB V30 — correção definitiva da lista de produtos na Nova Venda.
+Após selecionar um produto, a lista é fechada e removida do conteúdo visível.
