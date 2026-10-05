@@ -1,5 +1,5 @@
 const KEY="lojinha_tuca_web_v1";
-const UI_VERSION="25";
+const UI_VERSION="26";
 const $=s=>document.querySelector(s);
 const money=v=>new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"}).format(Number(v)||0);
 const today=()=>new Date().toISOString().slice(0,10);
@@ -28,6 +28,7 @@ $("#modal").addEventListener("click",e=>e.stopPropagation());
 document.addEventListener("keydown",e=>{if(e.key==="Escape")e.preventDefault()});
 function formField(label,name,value="",type="text"){return `<div class="field"><label>${label}</label><input class="form-control" id="f_${name}" type="${type}" value="${esc(value)}"></div>`}
 function selectField(label,name,opts,value=""){return `<div class="field"><label>${label}</label><select class="form-control" id="f_${name}">${opts.map(o=>`<option ${String(o[0])===String(value)?"selected":""} value="${esc(o[0])}">${esc(o[1])}</option>`).join("")}</select></div>`}
+function searchableProductField(products,value=""){const selected=find(products,value);const current=selected?`${selected.description||""} / ${selected.size||"-"} — ${money(selected.sale)} — estoque ${selected.stock}`:"";const options=products.map(p=>`<option value="${esc(`${p.description||""} / ${p.size||"-"} — ${money(p.sale)} — estoque ${p.stock}`)}"></option>`).join("");return `<div class="field"><label>Produto</label><input class="form-control searchable-product" id="f_product_search" type="text" list="productOptions" autocomplete="off" placeholder="Digite para buscar o produto..." value="${esc(current)}"><datalist id="productOptions">${options}</datalist><input id="f_product_id" type="hidden" value="${esc(value||"")}"><small class="field-help">Digite parte do tipo ou descrição para localizar qualquer produto disponível.</small></div>`}
 function pageHead(title,actions=""){return `<div class="page-head"><div class="page-title-group"><button class="btn back-btn" onclick="go('dashboard')">← Voltar</button><h1>${title}</h1></div><div class="actions">${actions}</div></div>`}
 function table(headers,rows,empty="Nenhum registro"){return `<div class="table-wrap"><table class="table"><thead><tr>${headers.map(h=>`<th>${h}</th>`).join("")}</tr></thead><tbody>${rows||`<tr><td colspan="${headers.length}" class="empty">${empty}</td></tr>`}</tbody></table></div>`}
 function searchBox(id,placeholder,value){return `<div class="toolbar search-toolbar"><input id="${id}" class="search" type="text" inputmode="search" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="${placeholder}" value="${esc(value||"")}" oninput="render()"><span class="search-hint">⌕</span></div>`}
@@ -204,9 +205,11 @@ function saleDetails(id){
 function newSale(){
  if(!db.products.some(p=>p.stock>0))return alert("Não há produtos disponíveis para venda.");
  const clients=[["","Selecione..."],...db.clients.map(c=>[c.id,c.name])];
- const prods=[...db.products.filter(p=>p.stock>0).map(p=>[p.id,`${p.description} / ${p.size||"-"} — ${money(p.sale)} — estoque ${p.stock}`])];
- modal("Nova venda",`<div class="grid2">${selectField("Cliente","client_id",clients)}${selectField("Produto","product_id",prods)}${formField("Quantidade","qty",1,"number")}${selectField("Pagamento","payment",[["Crédito","Crédito"],["À vista","À vista"]],"Crédito")}${selectField("Parcelas","installments",[["1","1x"],["2","2x"],["3","3x"],["4","4x"],["5","5x"],["6","6x"]],1)}${formField("Vencimento","due_date",today(),"date")}</div><div class="panel" style="margin-top:12px"><b>Total: <span id="saleTotal">${money(0)}</span></b></div>`, `<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">← Voltar</button><button class="btn primary" onclick="saveSale()">Confirmar venda</button></div>`);
- $("#f_product_id").addEventListener("change",calcSale);$("#f_qty").addEventListener("input",calcSale);calcSale()
+ const prods=[...db.products.filter(p=>Number(p.stock)>0)];
+ modal("Nova venda",`<div class="grid2">${selectField("Cliente","client_id",clients)}${searchableProductField(prods,"")}${formField("Quantidade","qty",1,"number")}${selectField("Pagamento","payment",[["Crédito","Crédito"],["À vista","À vista"]],"Crédito")}${selectField("Parcelas","installments",[["1","1x"],["2","2x"],["3","3x"],["4","4x"],["5","5x"],["6","6x"]],1)}${formField("Vencimento","due_date",today(),"date")}</div><div class="panel" style="margin-top:12px"><b>Total: <span id="saleTotal">${money(0)}</span></b></div>`, `<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">← Voltar</button><button class="btn primary" onclick="saveSale()">Confirmar venda</button></div>`);
+ const ps=$("#f_product_search");
+ ps.addEventListener("input",()=>{const txt=ps.value.trim();const match=prods.find(p=>`${p.description||""} / ${p.size||"-"} — ${money(p.sale)} — estoque ${p.stock}`===txt) || prods.find(p=>(`${p.description||""} ${p.kind||""} ${p.size||""}`).toLowerCase().includes(txt.toLowerCase()) && txt.length>0);$("#f_product_id").value=match?match.id:"";calcSale()});
+ $("#f_qty").addEventListener("input",calcSale);calcSale()
 }
 function calcSale(){const p=find(db.products,$("#f_product_id").value);$("#saleTotal").textContent=money((p?.sale||0)*(parseInt($("#f_qty").value)||0))}
 function saveSale(){
