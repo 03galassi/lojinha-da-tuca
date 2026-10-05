@@ -210,7 +210,7 @@ function newSale(){
  if(!db.products.some(p=>Number(p.stock)>0))return alert("Não há produtos disponíveis para venda.");
  const clients=[["","Selecione..."],...db.clients.map(c=>[c.id,c.name])];
  const prods=[...db.products.filter(p=>Number(p.stock)>0)];
- modal("Nova venda",`<div class="grid2">${selectField("Cliente","client_id",clients)}${searchableProductField(prods,"")}${formField("Quantidade","qty",1,"number")}${formField("Preço original","original_price",0,"number")}${formField("Valor da venda","sale_price",0,"number")}${formField("Desconto %","discount",0,"number")}${selectField("Pagamento","payment",[["Crédito","Crédito"],["À vista","À vista"]],"Crédito")}${selectField("Parcelas","installments",[["1","1x"],["2","2x"],["3","3x"],["4","4x"],["5","5x"],["6","6x"]],1)}${formField("Vencimento","due_date",today(),"date")}</div><div class="panel" style="margin-top:12px"><b>Total da venda: <span id="saleTotal">${money(0)}</span></b></div>`, `<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">← Voltar</button><button class="btn primary" onclick="saveSale()">Confirmar venda</button></div>`);
+ modal("Nova venda",`<div class="grid2">${selectField("Cliente","client_id",clients)}${searchableProductField(prods,"")}${formField("Quantidade","qty",1,"number")}${formField("Preço original","original_price",0,"number")}${formField("Valor da venda","sale_price",0,"number")}${selectField("Desconto","discount_option",[["0","Sem desconto"],["5","5%"],["10","10%"],["15","15%"],["20","20%"],["other","Outra"]],"0")}${formField("Desconto %","discount",0,"number")}${selectField("Pagamento","payment",[["Crédito","Crédito"],["À vista","À vista"]],"Crédito")}${selectField("Parcelas","installments",[["1","1x"],["2","2x"],["3","3x"],["4","4x"],["5","5x"],["6","6x"]],1)}${formField("Vencimento","due_date",today(),"date")}</div><div class="panel" style="margin-top:12px"><b>Total da venda: <span id="saleTotal">${money(0)}</span></b></div>`, `<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">← Voltar</button><button class="btn primary" onclick="saveSale()">Confirmar venda</button></div>`);
  const ps=$("#f_product_search"), results=$("#productSearchResults");
  function showResults(term=""){
    const q=term.trim().toLowerCase();
@@ -222,6 +222,11 @@ function newSale(){
  ps.addEventListener("input",()=>{ $("#f_product_id").value=""; $("#f_original_price").value="0"; $("#f_sale_price").value="0"; $("#f_discount").value="0"; showResults(ps.value); calcSale(); });
  document.addEventListener("click",function closeProductSearch(e){if(!e.target.closest(".product-search-field")){results.classList.add("hidden");document.removeEventListener("click",closeProductSearch)}});
  ["qty"].forEach(id=>$("#f_"+id).addEventListener("input",calcSale));
+ $("#f_discount_option").addEventListener("change",()=>{
+   const opt=$("#f_discount_option").value;
+   if(opt!=="other"){ $("#f_discount").value=Number(opt)||0; updateSaleFromDiscount(); }
+   else { $("#f_discount").focus(); }
+ });
  $("#f_sale_price").addEventListener("input",()=>updateSaleFromPrice());
  $("#f_discount").addEventListener("input",()=>updateSaleFromDiscount());
  calcSale();
@@ -233,6 +238,7 @@ function selectSaleProduct(id){
  $("#f_original_price").value=Number(p.sale||0).toFixed(2);
  $("#f_sale_price").value=Number(p.sale||0).toFixed(2);
  $("#f_discount").value="0";
+ $("#f_discount_option").value="0";
  $("#productSearchResults")?.classList.add("hidden");
  calcSale();
 }
@@ -242,11 +248,16 @@ function calcSale(){
  if($("#f_original_price"))$("#f_original_price").value=p?Number(p.sale||0).toFixed(2):"0";
  if($("#saleTotal"))$("#saleTotal").textContent=money(price*(parseInt($("#f_qty")?.value)||0));
 }
+function syncDiscountOption(d){
+ const opts=[0,5,10,15,20];
+ const exact=opts.find(x=>Math.abs(x-Number(d))<0.005);
+ if($("#f_discount_option")) $("#f_discount_option").value=exact!==undefined?String(exact):"other";
+}
 function updateSaleFromPrice(){
  const original=Number($("#f_original_price")?.value)||0;
  let price=Number(String($("#f_sale_price")?.value||0).replace(",","."))||0;
  if(price<0)price=0;
- if(original>0){let d=((original-price)/original)*100;if(d<0)d=0;$("#f_discount").value=d.toFixed(2)}
+ if(original>0){let d=((original-price)/original)*100;if(d<0)d=0;$("#f_discount").value=d.toFixed(2); syncDiscountOption(d)}
  calcSale();
 }
 function updateSaleFromDiscount(){
@@ -254,6 +265,7 @@ function updateSaleFromDiscount(){
  let d=Number(String($("#f_discount")?.value||0).replace(",","."))||0;
  d=Math.max(0,Math.min(100,d));
  $("#f_discount").value=d;
+ syncDiscountOption(d);
  $("#f_sale_price").value=(original*(1-d/100)).toFixed(2);
  calcSale();
 }
