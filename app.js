@@ -1,6 +1,12 @@
-// V43 - removido botão duplicado de importação local; Google Drive é o caminho de restauração.
+// V55 - banco online Supabase para a Lojinha da Tuca.
 const KEY="lojinha_tuca_web_v1";
-const UI_VERSION="53";
+const UI_VERSION="55";
+const SUPABASE_URL="https://tevhntrstbdakudpsudb.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY="sb_publishable_Ez9515GMQgwJ9WS9XDsvXQ_Lz3L5lHl";
+let sb=null;
+let onlineReady=false;
+let onlineSyncTimer=null;
+let onlineSyncBusy=false;
 const $=s=>document.querySelector(s);
 const money=v=>new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"}).format(Number(v)||0);
 const dateBR=v=>{if(!v)return "";const s=String(v).trim();if(/^\d{4}-\d{2}-\d{2}$/.test(s)){const [y,m,d]=s.split("-");return `${d}/${m}/${y}`;}if(/^\d{2}\/\d{2}\/\d{4}$/.test(s))return s;const d=new Date(s);return Number.isNaN(d.getTime())?s:d.toLocaleDateString("pt-BR");};
@@ -17,7 +23,79 @@ function load(){
   }catch(e){}
   return {title:"LOJINHA DA TUCA",products:[],clients:[],sales:[],saleItems:[],payments:[],suppliers:[],payables:[],supplierPayments:[],withdrawals:[],legacyReceivables:[]};
 }
-function save(){localStorage.setItem(KEY,JSON.stringify(db))}
+function save(){
+  localStorage.setItem(KEY,JSON.stringify(db));
+  if(onlineReady) scheduleOnlineSync();
+}
+function hasStoreData(x){
+  return !!x && (Array.isArray(x.products)&&x.products.length || Array.isArray(x.clients)&&x.clients.length || Array.isArray(x.sales)&&x.sales.length || Array.isArray(x.payables)&&x.payables.length || Array.isArray(x.suppliers)&&x.suppliers.length || Array.isArray(x.legacyReceivables)&&x.legacyReceivables.length);
+}
+function normalizeDb(x){
+  const base=load();
+  return Object.assign(base,x||{}, {
+    products:Array.isArray(x?.products)?x.products:[],
+    clients:Array.isArray(x?.clients)?x.clients:[],
+    sales:Array.isArray(x?.sales)?x.sales:[],
+    saleItems:Array.isArray(x?.saleItems)?x.saleItems:[],
+    payments:Array.isArray(x?.payments)?x.payments:[],
+    suppliers:Array.isArray(x?.suppliers)?x.suppliers:[],
+    payables:Array.isArray(x?.payables)?x.payables:[],
+    supplierPayments:Array.isArray(x?.supplierPayments)?x.supplierPayments:[],
+    withdrawals:Array.isArray(x?.withdrawals)?x.withdrawals:[],
+    legacyReceivables:Array.isArray(x?.legacyReceivables)?x.legacyReceivables:[],
+    title:x?.title||base.title||"LOJINHA DA TUCA"
+  });
+}
+function setOnlineStatus(text,ok=true){
+  const e=document.getElementById('onlineStatus');
+  if(e){e.textContent=text;e.classList.toggle('online-ok',!!ok);e.classList.toggle('online-off',!ok);}
+}
+function scheduleOnlineSync(){
+  clearTimeout(onlineSyncTimer);
+  onlineSyncTimer=setTimeout(syncOnlineState,350);
+}
+async function syncOnlineState(){
+  if(!sb||!onlineReady||onlineSyncBusy)return;
+  onlineSyncBusy=true;
+  try{
+    const {error}=await sb.from('app_settings').upsert({setting_key:'store_state',setting_value:JSON.stringify(db)},{onConflict:'setting_key'});
+    if(error)throw error;
+    setOnlineStatus('● Banco online',true);
+  }catch(e){
+    console.error('Tuca: erro ao sincronizar com Supabase',e);
+    setOnlineStatus('● Offline — dados locais',false);
+  }finally{onlineSyncBusy=false;}
+}
+async function initSupabase(){
+  try{
+    if(!window.supabase?.createClient)throw new Error('Biblioteca Supabase não carregada.');
+    sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
+    setOnlineStatus('● Conectando...',false);
+    const {data,error}=await sb.from('app_settings').select('setting_value').eq('setting_key','store_state').maybeSingle();
+    if(error)throw error;
+    if(data?.setting_value){
+      try{
+        const remote=normalizeDb(JSON.parse(data.setting_value));
+        db=remote;
+        localStorage.setItem(KEY,JSON.stringify(db));
+        if(!Array.isArray(db.legacyReceivables))db.legacyReceivables=[];
+        render();
+        setOnlineStatus('● Banco online',true);
+      }catch(e){throw new Error('O estado online da loja está inválido.');}
+    }else{
+      onlineReady=true;
+      await syncOnlineState();
+      setOnlineStatus('● Banco online',true);
+      return;
+    }
+    onlineReady=true;
+  }catch(e){
+    console.error('Tuca: falha na conexão Supabase',e);
+    onlineReady=false;
+    setOnlineStatus('● Offline — dados locais',false);
+  }
+}
+
 function toast(t){const e=$("#toast");e.textContent=t;e.classList.add("show");setTimeout(()=>e.classList.remove("show"),2200)}
 function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
 function nextId(a){return a.length?Math.max(...a.map(x=>Number(x.id)||0))+1:1}
@@ -635,7 +713,7 @@ $("#backupBtn").onclick=()=>download("backup_lojinhas_da_tuca.json",new Blob([JS
 $("#brand").ondblclick=()=>{const n=prompt("Nome do cabeçalho:",db.title);if(n&&n.trim()){db.title=n.trim();save();render()}};
 window.newProduct=newProduct;window.editProduct=editProduct;window.deleteProduct=deleteProduct;window.restock=restock;window.newClient=newClient;window.editClient=editClient;window.deleteClient=deleteClient;window.clientDetails=clientDetails;window.newSale=newSale;window.saleDetails=saleDetails;window.payment=payment;window.deleteSale=deleteSale;window.whatsapp=whatsapp;window.newSupplier=newSupplier;window.editSupplier=editSupplier;window.deleteSupplier=deleteSupplier;window.supplierDetails=supplierDetails;window.newPayable=newPayable;window.editPayable=editPayable;window.payableDetails=payableDetails;window.supplierPayment=supplierPayment;window.withdrawal=withdrawal;window.go=go;window.closeModal=closeModal;window.saveProduct=saveProduct;window.saveClient=saveClient;window.saveSale=saveSale;window.savePayment=savePayment;window.saveSupplier=saveSupplier;window.savePayable=savePayable;window.saveSupplierPayment=saveSupplierPayment;window.saveWithdrawal=saveWithdrawal;window.exportCsv=exportCsv;window.exportPdf=exportPdf;window.handleReceiptFile=handleReceiptFile;window.googleDriveBackup=googleDriveBackup;window.googleDriveRestore=googleDriveRestore;
 render();
-
+initSupabase();
 
 // V6 mobile navigation
 $('#mobileMenuBtn')?.addEventListener('click',()=>$('#mobileDrawer')?.classList.remove('hidden'));

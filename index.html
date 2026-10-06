@@ -17,7 +17,7 @@
       <div><div id="appTitle">LOJINHA DA TUCA</div><small>Gestão da loja</small></div>
     </div>
     <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Abrir menu">☰</button>
-    <div class="top-actions">
+    <div class="top-actions"><span id="onlineStatus" class="online-status online-off">● Conectando...</span>
       <button class="btn ghost" id="appearanceBtn">🎨 Aparência</button><button class="btn ghost" id="backupBtn">Exportar backup</button><button class="btn ghost" id="driveBackupBtn">☁️ Backup Google Drive</button><button class="btn ghost" id="driveRestoreBtn">☁️ Restaurar Google Drive</button>
       
     </div>
@@ -48,6 +48,7 @@
 
 <div class="modal hidden" id="modal"><div class="modal-card" id="modalCard"></div></div>
 <div class="toast" id="toast"></div>
-<script src="app.js?v=54.20261006"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="app.js?v=55.20261006"></script>
 </body>
 </html>

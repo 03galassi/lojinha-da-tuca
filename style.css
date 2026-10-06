@@ -674,3 +674,8 @@ body.theme-dark .modal-head{background:var(--theme-surface)}
     min-width:0 !important;
   }
 }
+
+
+/* V55 — indicador do banco online */
+.online-status{display:inline-flex;align-items:center;justify-content:center;min-height:42px;padding:0 13px;border-radius:12px;font-weight:700;font-size:12px;white-space:nowrap;background:rgba(255,255,255,.10);color:#fff}.online-status.online-ok{background:rgba(35,190,110,.18);color:#d7ffe9}.online-status.online-off{background:rgba(220,70,70,.16);color:#ffd7d7}
+@media (max-width:900px){.online-status{min-height:36px;padding:0 9px;font-size:10px}.top-actions .online-status{display:none}}
