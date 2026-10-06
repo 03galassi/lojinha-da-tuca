@@ -526,9 +526,8 @@ function exportCsv(){
  const rows=[["Indicador","Valor"],["Total vendido",db.sales.reduce((s,x)=>s+Number(x.total||0),0)],["Total recebido",db.sales.reduce((s,x)=>s+Number(x.paid||0),0)],["Estoque a preço de venda",stock],["A receber",rec],["A pagar",pay],["Estoque + A receber - A pagar",stock+rec-pay]];
  const csv=rows.map(r=>r.map(x=>`"${String(x).replaceAll('"','""')}"`).join(";")).join("\n");download("relatorio_tuca.csv",new Blob(["\ufeff"+csv],{type:"text/csv;charset=utf-8"}))}
 function download(name,blob){const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
-function googleDriveClientId(){
-  return localStorage.getItem('tuca_google_client_id')||'';
-}
+const TUCA_GOOGLE_CLIENT_ID='855482975063-94b5bg9pdffvhg85qsuga7m2a5l2h0dk.apps.googleusercontent.com';
+function googleDriveClientId(){ return TUCA_GOOGLE_CLIENT_ID; }
 function loadGoogleIdentity(){
   return new Promise((resolve,reject)=>{
     if(window.google?.accounts?.oauth2)return resolve();
@@ -537,17 +536,7 @@ function loadGoogleIdentity(){
     const s=document.createElement('script');s.id='googleIdentityScript';s.src='https://accounts.google.com/gsi/client';s.onload=()=>resolve();s.onerror=reject;document.head.appendChild(s);
   });
 }
-function askGoogleClientId(){
-  let id=googleDriveClientId();
-  if(!id){
-    id=prompt('Cole aqui o Client ID do Google OAuth da Lojinha da Tuca.\n\nExemplo: 1234567890-xxxxxxxxxxxxxxxx.apps.googleusercontent.com');
-    if(!id)return '';
-    id=id.trim();
-    if(!/\.apps\.googleusercontent\.com$/.test(id))return alert('Client ID inválido. Ele deve terminar em .apps.googleusercontent.com'),'';
-    localStorage.setItem('tuca_google_client_id',id);
-  }
-  return id;
-}
+function askGoogleClientId(){ return googleDriveClientId(); }
 async function googleDriveToken(){
   const clientId=askGoogleClientId(); if(!clientId)return null;
   await loadGoogleIdentity();
