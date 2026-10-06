@@ -679,3 +679,20 @@ body.theme-dark .modal-head{background:var(--theme-surface)}
 /* V55 — indicador do banco online */
 .online-status{display:inline-flex;align-items:center;justify-content:center;min-height:42px;padding:0 13px;border-radius:12px;font-weight:700;font-size:12px;white-space:nowrap;background:rgba(255,255,255,.10);color:#fff}.online-status.online-ok{background:rgba(35,190,110,.18);color:#d7ffe9}.online-status.online-off{background:rgba(220,70,70,.16);color:#ffd7d7}
 @media (max-width:900px){.online-status{min-height:36px;padding:0 9px;font-size:10px}.top-actions .online-status{display:none}}
+
+/* V56 — acesso protegido pelo Supabase Auth */
+.login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:linear-gradient(135deg,#10002b,#26005c,#4b12a8)}
+.login-card{width:min(420px,100%);background:#fff;border-radius:22px;padding:30px;box-shadow:0 18px 50px rgba(0,0,0,.28);text-align:center}
+.login-logo{width:105px;height:105px;object-fit:contain;margin-bottom:8px}
+.login-card h1{margin:4px 0 4px;font-size:26px;color:#16003d}
+.login-subtitle{margin:0 0 24px;color:#607d8b}
+.login-field{text-align:left;margin-bottom:14px}
+.login-field label{display:block;font-weight:700;font-size:13px;color:#455a64;margin-bottom:6px}
+.login-field input{width:100%;padding:13px 14px;border:1px solid #cfd8dc;border-radius:10px;font-size:16px;outline:none}
+.login-field input:focus{border-color:#6a1b9a;box-shadow:0 0 0 3px rgba(106,27,154,.12)}
+.login-submit{width:100%;border:0;border-radius:10px;padding:13px;background:#4b12a8;color:#fff;font-weight:800;font-size:16px;cursor:pointer}
+.login-forgot{border:0;background:transparent;color:#5e35b1;font-weight:700;margin-top:14px;cursor:pointer}
+.login-message{margin:14px 0 0;padding:10px;border-radius:9px;background:#ffe8e8;color:#a52323;font-size:13px}
+.login-message.ok{background:#e7f6eb;color:#176b32}
+.hidden{display:none!important}
+#storeApp{display:none}

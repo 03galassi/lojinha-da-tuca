@@ -1,4 +1,4 @@
-// V55 - banco online Supabase para a Lojinha da Tuca.
+// V56 - banco online Supabase + autenticação para a Lojinha da Tuca.
 const KEY="lojinha_tuca_web_v1";
 const UI_VERSION="55";
 const SUPABASE_URL="https://tevhntrstbdakudpsudb.supabase.co";
@@ -67,33 +67,58 @@ async function syncOnlineState(){
   }finally{onlineSyncBusy=false;}
 }
 async function initSupabase(){
+  // V57: inicia sempre mostrando a tela de login.
+  // A sessão existente não abre a loja automaticamente; o usuário confirma o acesso pelo botão Entrar.
+  showLogin();
   try{
     if(!window.supabase?.createClient)throw new Error('Biblioteca Supabase não carregada.');
     sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
-    setOnlineStatus('● Conectando...',false);
+    sb.auth.onAuthStateChange(async(event)=>{
+      if(event==='SIGNED_OUT'){ showLogin(); }
+    });
+    setOnlineStatus('● Aguardando login...',false);
+  }catch(e){
+    console.error('Tuca: falha na inicialização Supabase',e);
+    showLogin('Não foi possível iniciar o acesso. Verifique sua conexão.');
+  }
+}
+async function authorizeUser(user){
+  try{
+    const {data,error}=await sb.from('profiles').select('id,name,cpf,role,status,auth_email').eq('id',user.id).maybeSingle();
+    if(error)throw error;
+    if(!data || data.status!=='ativo' || data.role!=='admin'){ await sb.auth.signOut(); showLogin('Usuário sem autorização para acessar a Lojinha da Tuca.'); return false; }
+    window.tucaProfile=data; return true;
+  }catch(e){ console.error('Tuca: erro ao verificar perfil',e); await sb.auth.signOut(); showLogin('Não foi possível verificar a autorização do usuário.'); return false; }
+}
+async function startStoreOnline(){
+  $('#loginScreen')?.classList.add('hidden'); $('#loginScreen')?.style.setProperty('display','none','important'); $('#storeApp')?.style.setProperty('display','block','important'); setOnlineStatus('● Carregando banco...',false);
+  try{
     const {data,error}=await sb.from('app_settings').select('setting_value').eq('setting_key','store_state').maybeSingle();
     if(error)throw error;
-    if(data?.setting_value){
-      try{
-        const remote=normalizeDb(JSON.parse(data.setting_value));
-        db=remote;
-        localStorage.setItem(KEY,JSON.stringify(db));
-        if(!Array.isArray(db.legacyReceivables))db.legacyReceivables=[];
-        render();
-        setOnlineStatus('● Banco online',true);
-      }catch(e){throw new Error('O estado online da loja está inválido.');}
-    }else{
-      onlineReady=true;
-      await syncOnlineState();
-      setOnlineStatus('● Banco online',true);
-      return;
-    }
-    onlineReady=true;
-  }catch(e){
-    console.error('Tuca: falha na conexão Supabase',e);
-    onlineReady=false;
-    setOnlineStatus('● Offline — dados locais',false);
-  }
+    if(data?.setting_value){ db=normalizeDb(JSON.parse(data.setting_value)); localStorage.setItem(KEY,JSON.stringify(db)); if(!Array.isArray(db.legacyReceivables))db.legacyReceivables=[]; render(); }
+    else { onlineReady=true; await syncOnlineState(); }
+    onlineReady=true; setOnlineStatus('● Banco online',true);
+  }catch(e){ console.error('Tuca: falha na carga online',e); onlineReady=false; setOnlineStatus('● Offline — dados locais',false); render(); toast('Banco online indisponível; dados locais mantidos.'); }
+}
+function showLogin(message=''){
+  const store=$('#storeApp'), login=$('#loginScreen');
+  if(store){ store.style.setProperty('display','none','important'); }
+  if(login){ login.classList.remove('hidden'); login.style.setProperty('display','flex','important'); }
+  if(message){const m=$('#loginMessage');if(m){m.textContent=message;m.classList.remove('hidden');m.classList.remove('ok');}}
+}
+async function doLogin(){
+  const email=$('#loginEmail')?.value.trim(), password=$('#loginPassword')?.value||'', msg=$('#loginMessage');
+  if(msg){msg.classList.add('hidden');msg.classList.remove('ok');}
+  if(!email||!password){if(msg){msg.textContent='Informe o e-mail e a senha.';msg.classList.remove('hidden');}return;}
+  try{const {data,error}=await sb.auth.signInWithPassword({email,password});if(error)throw error;if(!(await authorizeUser(data.user)))return;if(msg){msg.textContent='Acesso autorizado.';msg.classList.remove('hidden');msg.classList.add('ok');}await startStoreOnline();$('#loginPassword').value='';}
+  catch(e){console.error('Tuca: erro no login',e);if(msg){msg.textContent='E-mail ou senha inválidos.';msg.classList.remove('hidden');msg.classList.remove('ok');}}
+}
+async function doLogout(){if(sb)await sb.auth.signOut();onlineReady=false;window.tucaProfile=null;showLogin();$('#loginPassword').value='';}
+async function doForgotPassword(){
+  const email=$('#loginEmail')?.value.trim(),msg=$('#loginMessage');
+  if(!email){if(msg){msg.textContent='Informe o e-mail para recuperar a senha.';msg.classList.remove('hidden');}return;}
+  try{const redirectTo=location.origin+location.pathname;const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo});if(error)throw error;if(msg){msg.textContent='Link de recuperação enviado. Verifique o e-mail.';msg.classList.remove('hidden');msg.classList.add('ok');}}
+  catch(e){console.error('Tuca: erro na recuperação',e);if(msg){msg.textContent='Não foi possível enviar a recuperação de senha.';msg.classList.remove('hidden');msg.classList.remove('ok');}}
 }
 
 function toast(t){const e=$("#toast");e.textContent=t;e.classList.add("show");setTimeout(()=>e.classList.remove("show"),2200)}
@@ -712,8 +737,13 @@ async function googleDriveRestore(){
 $("#backupBtn").onclick=()=>download("backup_lojinhas_da_tuca.json",new Blob([JSON.stringify(db,null,2)],{type:"application/json"}));
 $("#brand").ondblclick=()=>{const n=prompt("Nome do cabeçalho:",db.title);if(n&&n.trim()){db.title=n.trim();save();render()}};
 window.newProduct=newProduct;window.editProduct=editProduct;window.deleteProduct=deleteProduct;window.restock=restock;window.newClient=newClient;window.editClient=editClient;window.deleteClient=deleteClient;window.clientDetails=clientDetails;window.newSale=newSale;window.saleDetails=saleDetails;window.payment=payment;window.deleteSale=deleteSale;window.whatsapp=whatsapp;window.newSupplier=newSupplier;window.editSupplier=editSupplier;window.deleteSupplier=deleteSupplier;window.supplierDetails=supplierDetails;window.newPayable=newPayable;window.editPayable=editPayable;window.payableDetails=payableDetails;window.supplierPayment=supplierPayment;window.withdrawal=withdrawal;window.go=go;window.closeModal=closeModal;window.saveProduct=saveProduct;window.saveClient=saveClient;window.saveSale=saveSale;window.savePayment=savePayment;window.saveSupplier=saveSupplier;window.savePayable=savePayable;window.saveSupplierPayment=saveSupplierPayment;window.saveWithdrawal=saveWithdrawal;window.exportCsv=exportCsv;window.exportPdf=exportPdf;window.handleReceiptFile=handleReceiptFile;window.googleDriveBackup=googleDriveBackup;window.googleDriveRestore=googleDriveRestore;
-render();
 initSupabase();
+
+// V56 — autenticação Supabase
+$('#loginForm')?.addEventListener('submit',e=>{e.preventDefault();doLogin();});
+$('#forgotPasswordBtn')?.addEventListener('click',doForgotPassword);
+$('#logoutBtn')?.addEventListener('click',doLogout);
+$('#mobileLogoutBtn')?.addEventListener('click',()=>{closeMobileMenu();doLogout();});
 
 // V6 mobile navigation
 $('#mobileMenuBtn')?.addEventListener('click',()=>$('#mobileDrawer')?.classList.remove('hidden'));
