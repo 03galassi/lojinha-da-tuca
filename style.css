@@ -696,3 +696,6 @@ body.theme-dark .modal-head{background:var(--theme-surface)}
 .login-message.ok{background:#e7f6eb;color:#176b32}
 .hidden{display:none!important}
 #storeApp{display:none}
+
+.install-btn{background:#0785d1!important;color:#fff!important;border:0!important;font-weight:800!important}
+#backupFileInput{display:none!important}

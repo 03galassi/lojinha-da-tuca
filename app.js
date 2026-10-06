@@ -15,6 +15,8 @@ const uid=()=>Date.now()+Math.floor(Math.random()*10000);
 let db=load();
 if(!Array.isArray(db.legacyReceivables)) db.legacyReceivables=[];
 let page="dashboard";
+let deferredInstallPrompt=null;
+let installHelpShown=false;
 
 function load(){
   try{
@@ -735,8 +737,51 @@ async function googleDriveRestore(){
 }
 
 $("#backupBtn").onclick=()=>download("backup_lojinhas_da_tuca.json",new Blob([JSON.stringify(db,null,2)],{type:"application/json"}));
+
+function openBackupFilePicker(){ $("#backupFileInput")?.click(); }
+async function importBackupFile(file){
+  if(!file)return;
+  try{
+    const text=await file.text();
+    const x=JSON.parse(text);
+    if(!x || !Array.isArray(x.clients) || !Array.isArray(x.products) || !Array.isArray(x.sales)) throw new Error("Arquivo de backup inválido.");
+    if(!confirm("Restaurar este backup? Os dados atuais da Lojinha serão substituídos.")) return;
+    db=normalizeDb(x);
+    save();
+    render();
+    toast("Backup externo restaurado ✓");
+  }catch(e){ console.error(e); alert("Não foi possível importar o backup.\n\n"+(e.message||e)); }
+  finally{ $("#backupFileInput").value=""; }
+}
+
+function updateInstallButtons(show){
+  [$("#installAppBtn"),$("#mobileInstallAppBtn")].forEach(b=>{ if(b) b.style.display=show?"block":"none"; });
+}
+async function installApp(){
+  if(deferredInstallPrompt){
+    deferredInstallPrompt.prompt();
+    try{ await deferredInstallPrompt.userChoice; }catch(e){}
+    deferredInstallPrompt=null;
+    updateInstallButtons(false);
+    return;
+  }
+  if(installHelpShown)return;
+  installHelpShown=true;
+  alert("Para instalar a Lojinha como aplicativo:\n\n• Android/Chrome: use o menu ⋮ e escolha 'Instalar aplicativo' ou 'Adicionar à tela inicial'.\n\n• iPhone/iPad: toque em Compartilhar e escolha 'Adicionar à Tela de Início'.\n\n• Computador/Chrome ou Edge: use o ícone de instalação na barra de endereço, quando disponível.");
+}
+window.addEventListener("beforeinstallprompt",e=>{ e.preventDefault(); deferredInstallPrompt=e; updateInstallButtons(true); });
+window.addEventListener("appinstalled",()=>{ deferredInstallPrompt=null; updateInstallButtons(false); });
+if("serviceWorker" in navigator && location.protocol.startsWith("http")){
+  window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js?v=58.20261006").catch(e=>console.warn("PWA: service worker não registrado",e)));
+}
+
+$("#backupFileInput")?.addEventListener("change",e=>importBackupFile(e.target.files?.[0]));
+$("#importBackupBtn")?.addEventListener("click",openBackupFilePicker);
+$("#mobileImportBackupBtn")?.addEventListener("click",()=>{ closeMobileMenu(); openBackupFilePicker(); });
+$("#installAppBtn")?.addEventListener("click",installApp);
+$("#mobileInstallAppBtn")?.addEventListener("click",()=>{ closeMobileMenu(); installApp(); });
 $("#brand").ondblclick=()=>{const n=prompt("Nome do cabeçalho:",db.title);if(n&&n.trim()){db.title=n.trim();save();render()}};
-window.newProduct=newProduct;window.editProduct=editProduct;window.deleteProduct=deleteProduct;window.restock=restock;window.newClient=newClient;window.editClient=editClient;window.deleteClient=deleteClient;window.clientDetails=clientDetails;window.newSale=newSale;window.saleDetails=saleDetails;window.payment=payment;window.deleteSale=deleteSale;window.whatsapp=whatsapp;window.newSupplier=newSupplier;window.editSupplier=editSupplier;window.deleteSupplier=deleteSupplier;window.supplierDetails=supplierDetails;window.newPayable=newPayable;window.editPayable=editPayable;window.payableDetails=payableDetails;window.supplierPayment=supplierPayment;window.withdrawal=withdrawal;window.go=go;window.closeModal=closeModal;window.saveProduct=saveProduct;window.saveClient=saveClient;window.saveSale=saveSale;window.savePayment=savePayment;window.saveSupplier=saveSupplier;window.savePayable=savePayable;window.saveSupplierPayment=saveSupplierPayment;window.saveWithdrawal=saveWithdrawal;window.exportCsv=exportCsv;window.exportPdf=exportPdf;window.handleReceiptFile=handleReceiptFile;window.googleDriveBackup=googleDriveBackup;window.googleDriveRestore=googleDriveRestore;
+window.newProduct=newProduct;window.editProduct=editProduct;window.deleteProduct=deleteProduct;window.restock=restock;window.newClient=newClient;window.editClient=editClient;window.deleteClient=deleteClient;window.clientDetails=clientDetails;window.newSale=newSale;window.saleDetails=saleDetails;window.payment=payment;window.deleteSale=deleteSale;window.whatsapp=whatsapp;window.newSupplier=newSupplier;window.editSupplier=editSupplier;window.deleteSupplier=deleteSupplier;window.supplierDetails=supplierDetails;window.newPayable=newPayable;window.editPayable=editPayable;window.payableDetails=payableDetails;window.supplierPayment=supplierPayment;window.withdrawal=withdrawal;window.go=go;window.closeModal=closeModal;window.saveProduct=saveProduct;window.saveClient=saveClient;window.saveSale=saveSale;window.savePayment=savePayment;window.saveSupplier=saveSupplier;window.savePayable=savePayable;window.saveSupplierPayment=saveSupplierPayment;window.saveWithdrawal=saveWithdrawal;window.exportCsv=exportCsv;window.exportPdf=exportPdf;window.handleReceiptFile=handleReceiptFile;
 initSupabase();
 
 // V56 — autenticação Supabase
@@ -753,10 +798,6 @@ $('#mobileDrawer')?.addEventListener('click',e=>{
   if(b){page=b.dataset.page;closeMobileMenu();render();}
 });
 $('#mobileBackupBtn')?.addEventListener('click',()=>$('#backupBtn')?.click());
-$('#driveBackupBtn')?.addEventListener('click',googleDriveBackup);
-$('#driveRestoreBtn')?.addEventListener('click',googleDriveRestore);
-$('#mobileDriveBackupBtn')?.addEventListener('click',googleDriveBackup);
-$('#mobileDriveRestoreBtn')?.addEventListener('click',googleDriveRestore);
 
 // V41 — Aparência da loja
 function currentTheme(){return localStorage.getItem('tuca_theme')||'original'}

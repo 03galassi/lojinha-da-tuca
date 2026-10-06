@@ -34,7 +34,7 @@
     </div>
     <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Abrir menu">☰</button>
     <div class="top-actions"><span id="onlineStatus" class="online-status online-off">● Conectando...</span>
-      <button class="btn ghost" id="appearanceBtn">🎨 Aparência</button><button class="btn ghost" id="backupBtn">Exportar backup</button><button class="btn ghost" id="driveBackupBtn">☁️ Backup Google Drive</button><button class="btn ghost" id="driveRestoreBtn">☁️ Restaurar Google Drive</button><button class="btn danger" id="logoutBtn">Sair</button>
+      <button class="btn ghost" id="appearanceBtn">🎨 Aparência</button><button class="btn ghost" id="backupBtn">Exportar backup</button><button class="btn ghost" id="importBackupBtn">Importar backup</button><button class="btn install-btn" id="installAppBtn" style="display:none">📲 Instalar aplicativo</button><button class="btn danger" id="logoutBtn">Sair</button>
       
     </div>
   </header>
@@ -54,7 +54,7 @@
     <div class="mobile-drawer-head"><b>LOJINHA DA TUCA</b><button class="icon-btn" id="closeMobileMenu">✕</button></div>
     <div class="mobile-menu" id="mobileMenu"></div>
     <div class="mobile-tools">
-      <button class="btn ghost" id="mobileAppearanceBtn">🎨 Aparência</button><button class="btn ghost" id="mobileBackupBtn">☁️ Exportar backup</button><button class="btn ghost" id="mobileDriveBackupBtn">☁️ Backup Google Drive</button><button class="btn ghost" id="mobileDriveRestoreBtn">☁️ Restaurar Google Drive</button><button class="btn danger" id="mobileLogoutBtn">Sair</button>
+      <button class="btn ghost" id="mobileAppearanceBtn">🎨 Aparência</button><button class="btn ghost" id="mobileBackupBtn">☁️ Exportar backup</button><button class="btn ghost" id="mobileImportBackupBtn">📥 Importar backup</button><button class="btn install-btn" id="mobileInstallAppBtn" style="display:none">📲 Instalar aplicativo</button><button class="btn danger" id="mobileLogoutBtn">Sair</button>
       
     </div>
   </div>
@@ -64,7 +64,8 @@
 
 <div class="modal hidden" id="modal"><div class="modal-card" id="modalCard"></div></div>
 <div class="toast" id="toast"></div>
+<input type="file" id="backupFileInput" accept="application/json,.json" style="display:none">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="app.js?v=57.20261006"></script>
+<script src="app.js?v=58.20261006"></script>
 </body>
 </html>
