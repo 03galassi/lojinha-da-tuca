@@ -699,3 +699,58 @@ body.theme-dark .modal-head{background:var(--theme-surface)}
 
 .install-btn{background:#0785d1!important;color:#fff!important;border:0!important;font-weight:800!important}
 #backupFileInput{display:none!important}
+
+/* V65 — estilo launcher 3D inspirado na referência enviada, sem alterar as funções */
+.home-layout{background:
+  radial-gradient(circle at 18% 8%,rgba(139,92,246,.30),transparent 22%),
+  radial-gradient(circle at 85% 20%,rgba(56,189,248,.18),transparent 20%),
+  linear-gradient(145deg,#08031a 0%,#17053a 48%,#05020f 100%)!important;
+}
+.home-shortcuts{grid-template-columns:repeat(3,1fr)!important;gap:26px 22px!important;padding:12px 8px 24px!important}
+.home-tile{min-height:142px!important;border:0!important;border-radius:24px!important;background:transparent!important;box-shadow:none!important;position:relative!important;overflow:visible!important;gap:11px!important;color:#fff!important}
+.home-tile:before{content:"";position:absolute;top:5px;left:50%;width:82px;height:82px;transform:translateX(-50%) rotate(-7deg);border-radius:26px;background:linear-gradient(145deg,#9d65ff,#4b18c7 58%,#24105f);box-shadow:0 13px 22px rgba(0,0,0,.42),inset 2px 2px 7px rgba(255,255,255,.35),inset -5px -7px 12px rgba(0,0,0,.22);z-index:0}
+.home-tile:nth-child(3n+2):before{background:linear-gradient(145deg,#45b9ff,#087fd1 58%,#064e91);transform:translateX(-50%) rotate(7deg)}
+.home-tile:nth-child(3n):before{background:linear-gradient(145deg,#ffd65a,#ff9f00 58%,#b85b00);transform:translateX(-50%) rotate(-5deg)}
+.home-tile:nth-child(4n):before{background:linear-gradient(145deg,#ff75ad,#db2472 58%,#84103f)}
+.home-tile:hover{transform:translateY(-5px)!important;filter:brightness(1.08)!important}
+.home-tile-icon{width:48px!important;height:48px!important;z-index:2!important;filter:drop-shadow(0 2px 3px rgba(0,0,0,.3))}
+.home-tile-icon svg{color:#fff!important;stroke-width:2.7!important}
+.home-tile>span:last-child{z-index:2!important;font-size:13px!important;font-weight:800!important;letter-spacing:.2px!important;text-shadow:0 2px 5px rgba(0,0,0,.55)!important}
+.home-tile:after{content:"";position:absolute;top:13px;left:calc(50% - 31px);width:26px;height:12px;border-radius:50%;background:rgba(255,255,255,.28);filter:blur(2px);transform:rotate(-25deg);pointer-events:none;z-index:3}
+.home-panel-title{margin-top:2px!important;padding:14px 16px!important;border-radius:20px!important;background:linear-gradient(135deg,rgba(255,255,255,.10),rgba(255,255,255,.035))!important;border:1px solid rgba(255,255,255,.12)!important;box-shadow:0 8px 22px rgba(0,0,0,.22)!important}
+.home-panel-title h1{font-size:24px!important}
+.home-panel-title span{color:#cfc6e9!important}
+.home-metrics{grid-template-columns:repeat(2,1fr)!important;gap:12px!important}
+.home-metric{min-height:86px!important;border:1px solid rgba(255,255,255,.14)!important;border-radius:20px!important;background:linear-gradient(145deg,rgba(255,255,255,.13),rgba(255,255,255,.045))!important;backdrop-filter:blur(10px)!important;box-shadow:0 10px 25px rgba(0,0,0,.28)!important}
+.metric-sale,.metric-receive,.metric-clients,.metric-pay,.metric-products,.metric-month{background:linear-gradient(145deg,rgba(111,54,220,.72),rgba(37,13,91,.78))!important}
+.home-stock{background:rgba(255,255,255,.07)!important;border-color:rgba(255,255,255,.14)!important}
+@media(max-width:800px){
+ .home-layout{padding:14px 14px 30px!important}
+ .home-shortcuts{gap:20px 8px!important;padding:10px 3px 20px!important}
+ .home-tile{min-height:116px!important}
+ .home-tile:before{width:70px!important;height:70px!important;border-radius:22px!important}
+ .home-tile-icon{width:42px!important;height:42px!important}
+ .home-tile>span:last-child{font-size:11px!important}
+ .home-tile:after{top:10px!important;left:calc(50% - 26px)!important;width:22px!important;height:9px!important}
+ .home-panel-title{padding:12px 13px!important;border-radius:17px!important}
+ .home-panel-title h1{font-size:21px!important}
+ .home-metrics{grid-template-columns:1fr!important;gap:10px!important}
+ .home-metric{min-height:78px!important;border-radius:17px!important}
+}
+
+/* V66 — atalhos maiores, mantendo o launcher 3D */
+.home-shortcuts{gap:34px 28px!important;padding:18px 14px 30px!important}
+.home-tile{min-height:190px!important;gap:14px!important}
+.home-tile:before{width:122px!important;height:122px!important;border-radius:34px!important;top:2px!important;box-shadow:0 18px 30px rgba(0,0,0,.46),inset 3px 3px 10px rgba(255,255,255,.38),inset -7px -9px 15px rgba(0,0,0,.24)!important}
+.home-tile-icon{width:68px!important;height:68px!important}
+.home-tile-icon svg{stroke-width:2.6!important}
+.home-tile>span:last-child{font-size:16px!important;letter-spacing:.25px!important;text-shadow:0 3px 6px rgba(0,0,0,.60)!important}
+.home-tile:after{top:15px!important;left:calc(50% - 45px)!important;width:38px!important;height:15px!important}
+@media(max-width:800px){
+ .home-shortcuts{gap:24px 10px!important;padding:14px 2px 24px!important}
+ .home-tile{min-height:150px!important;gap:11px!important}
+ .home-tile:before{width:92px!important;height:92px!important;border-radius:27px!important}
+ .home-tile-icon{width:54px!important;height:54px!important}
+ .home-tile>span:last-child{font-size:12px!important}
+ .home-tile:after{top:12px!important;left:calc(50% - 34px)!important;width:29px!important;height:11px!important}
+}

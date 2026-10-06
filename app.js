@@ -252,14 +252,14 @@ function products(){
  const rows=db.products.filter(p=>(`${p.kind||""} ${p.description||""}`).toLowerCase().includes(q)).map(p=>`<tr>
  <td>${esc(p.code)}</td><td>${esc(p.kind)}</td><td>${esc(p.gender||"Não informado")}</td><td>${esc(p.description)}</td><td>${esc(p.size)}</td><td>${money(p.cost)}</td><td>${Number(p.margin||0).toFixed(2)}%</td><td class="money">${money(p.sale)}</td><td>${p.stock}</td>
  <td class="nowrap"><button class="icon-btn" onclick="editProduct(${p.id})">Editar</button> <button class="icon-btn" onclick="restock(${p.id})">Repor</button> <button class="icon-btn" onclick="deleteProduct(${p.id})">Excluir</button></td></tr>`);
- return pageHead("Produtos",`<button class="btn primary" onclick="newProduct()">+ Novo produto</button>`) +
+ return pageHead("Produtos",`<button class="btn ghost" onclick="openNfeXmlPicker()">📄 Importar NF-e XML</button> <button class="btn primary" onclick="newProduct()">+ Novo produto</button>`) +
  `<div class="panel">${searchBox("pq","Buscar produto por tipo ou descrição...",q)}${table(["Código","Tipo","Gênero","Descrição","Tamanho","Custo","Margem","Venda","Estoque","Ações"],rows.join(""))}</div>`;
 }
 function productForm(p={}){
- const margins=[["30","30%"],["50","50%"],["80","80%"],["100","100%"],["Outra","Outra"]];
+ const margins=[["50","50%"],["60","60%"],["70","70%"],["80","80% (padrão)"],["90","90%"],["100","100%"],["Outra","Outra"]];
  const savedMargin=String(p.margin??"");
  const marginKnown=margins.some(o=>o[0]===savedMargin);
- const marginField=selectField("Margem %","margin",margins,marginKnown?savedMargin:"50");
+ const marginField=`<div class="field" style="display:block!important;visibility:visible!important"><label style="display:block!important;font-weight:700">MARGEM (%)</label><select id="f_margin" class="form-control" style="display:block!important;visibility:visible!important;width:100%">${margins.map(o=>`<option value="${esc(o[0])}" ${String(o[0])===String(marginKnown?savedMargin:"80")?"selected":""}>${esc(o[1])}</option>`).join("")}</select></div>`;
  const gender=String(p.gender||"Masculino");
  const body=`<div class="grid2">${selectField("Tipo","kind",[["Blusa","Blusa"],["Camiseta","Camiseta"],["Calça Jeans","Calça Jeans"],["Shorts","Shorts"],["Vestido","Vestido"],["Saia","Saia"],["Conjunto","Conjunto"],["Outro","Outro"]],p.kind)}
  ${selectField("Gênero","gender",[["Masculino","Masculino"],["Feminino","Feminino"]],gender)}${formField("Descrição","description",p.description)}
@@ -293,6 +293,117 @@ function saveProduct(id){
  const saleValue=Number(v("sale").replace(",","."))||0;
  Object.assign(p,{code:p.code||"",kind:v("kind"),gender:v("gender"),description:v("description"),size:v("size"),cost:costValue,margin:marginValue,sale:saleValue,stock:Math.max(0,parseInt(v("stock"))||0),observation:$("#f_observation").value});
  if(!id)db.products.push(p);save();closeModal();render();toast("Produto salvo")}
+function openNfeXmlPicker(){
+ const input=document.getElementById("nfeXmlInput");
+ if(input) input.click();
+}
+function xmlText(node,tag){
+ const e=node.getElementsByTagNameNS("*",tag)[0] || node.getElementsByTagName(tag)[0];
+ return e ? String(e.textContent||"").trim() : "";
+}
+function parseNfeXml(text){
+ const doc=new DOMParser().parseFromString(text,"application/xml");
+ if(doc.querySelector("parsererror")) throw new Error("O arquivo XML não pôde ser lido.");
+ const dets=[...doc.getElementsByTagNameNS("*","det")];
+ if(!dets.length) throw new Error("Não encontrei produtos neste XML de NF-e.");
+ return dets.map((det,i)=>{
+   const prod=det.getElementsByTagNameNS("*","prod")[0] || det.getElementsByTagName("prod")[0];
+   if(!prod) return null;
+   const n=v=>xmlText(prod,v);
+   return {
+     item:i+1,
+     code:n("cProd"),
+     description:n("xProd"),
+     unit:n("uCom"),
+     qty:Number(String(n("qCom")).replace(",","."))||0,
+     cost:Number(String(n("vUnCom")).replace(",","."))||0,
+     total:Number(String(n("vProd")).replace(",","."))||0,
+     ncm:n("NCM"),
+     cfop:n("CFOP")
+   };
+ }).filter(Boolean).filter(x=>x.description && x.qty>0);
+}
+function findXmlExisting(item){
+ const code=String(item.code||"").trim().toLowerCase();
+ const desc=String(item.description||"").trim().toLowerCase();
+ return db.products.find(p=>code && String(p.code||"").trim().toLowerCase()===code) ||
+        db.products.find(p=>desc && String(p.description||"").trim().toLowerCase()===desc) || null;
+}
+let nfeImportQueue=[];
+let nfeImportIndex=0;
+let nfeImportAdded=0;
+let nfeImportCreated=0;
+function startNfeXmlImport(items,name){
+ nfeImportQueue=items; nfeImportIndex=0; nfeImportAdded=0; nfeImportCreated=0;
+ toast(`${items.length} produto(s) encontrado(s) no XML`);
+ showNextNfeItem(name||"NF-e");
+}
+function showNextNfeItem(fileName){
+ if(nfeImportIndex>=nfeImportQueue.length){
+   save(); closeModal(); render();
+   toast(`Importação concluída: ${nfeImportAdded} adicionado(s) ao estoque e ${nfeImportCreated} novo(s) produto(s).`);
+   return;
+ }
+ const item=nfeImportQueue[nfeImportIndex];
+ const existing=findXmlExisting(item);
+ const common=`<div class="field"><label>Produto ${nfeImportIndex+1} de ${nfeImportQueue.length}</label><div class="muted">Arquivo: ${esc(fileName||"NF-e XML")}</div></div>
+ <div class="grid2"><div class="field"><label>Código</label><input id="xml_code" value="${esc(item.code)}"></div><div class="field"><label>Unidade</label><input id="xml_unit" value="${esc(item.unit)}" readonly></div></div>
+ <div class="field"><label>Descrição</label><input id="xml_desc" value="${esc(item.description)}"></div>
+ <div class="grid2"><div class="field"><label>Quantidade</label><input id="xml_qty" type="number" step="0.01" value="${item.qty}"></div><div class="field"><label>Custo unitário</label><input id="xml_cost" type="number" step="0.01" value="${item.cost.toFixed(2)}"></div></div>`;
+ if(existing){
+   modal("Importar NF-e — produto já cadastrado",common+`<div class="notice success"><b>🟢 Produto já cadastrado</b><br>${esc(existing.description||"")}<br>Estoque atual: <b>${existing.stock||0}</b><br>Após confirmar: <b>${Number(existing.stock||0)+Number(item.qty||0)}</b></div>`,
+    `<div class="modal-actions"><button class="btn ghost" onclick="skipNfeItem()">Pular</button><button class="btn primary" onclick="confirmNfeExisting(${existing.id})">Adicionar ao estoque</button></div>`);
+ }else{
+   const sale=(item.cost*1.5).toFixed(2);
+   modal("Importar NF-e — novo produto",common+`<div class="notice"><b>🆕 Produto não cadastrado.</b><br>Você poderá ajustar os dados antes de salvar.</div>
+   <div class="grid2">${selectField("Tipo","xml_kind",[["Blusa","Blusa"],["Camiseta","Camiseta"],["Calça Jeans","Calça Jeans"],["Shorts","Shorts"],["Vestido","Vestido"],["Saia","Saia"],["Conjunto","Conjunto"],["Outro","Outro"]],"Outro")}${selectField("Gênero","xml_gender",[["Masculino","Masculino"],["Feminino","Feminino"]],"Feminino")}</div>
+   <div class="grid2"><div class="field"><label>Tamanho</label><input id="xml_size" placeholder="Ex.: M"></div><div class="field"><label>MARGEM (%)</label><select id="xml_margin" class="form-control"><option value="50">50%</option><option value="60">60%</option><option value="70">70%</option><option value="80" selected>80% (padrão)</option><option value="90">90%</option><option value="100">100%</option><option value="Outra">Outra</option></select></div></div>
+   <div id="xml_customMarginWrap" class="field" style="display:none;margin-top:10px"><label>Margem personalizada (%)</label><input id="xml_customMargin" type="number" step="0.01" min="0" placeholder="Ex.: 75"></div>
+   <div class="field"><label>Preço de venda</label><input id="xml_sale" type="number" step="0.01" value="${(item.cost*1.8).toFixed(2)}"></div>`,
+    `<div class="modal-actions"><button class="btn ghost" onclick="skipNfeItem()">Pular</button><button class="btn primary" onclick="confirmNfeNew()">Cadastrar e adicionar estoque</button></div>`);
+   setupNfeProductCalc();
+ }
+}
+function skipNfeItem(){ nfeImportIndex++; showNextNfeItem(); }
+function confirmNfeExisting(id){
+ const p=find(db.products,id); if(!p)return;
+ const qty=Number(document.getElementById("xml_qty")?.value)||0;
+ if(qty<=0)return alert("Quantidade inválida.");
+ p.stock=Number(p.stock||0)+qty; p.exhausted_at=null;
+ nfeImportAdded++; nfeImportIndex++; save(); showNextNfeItem();
+}
+function setupNfeProductCalc(){
+ const cost=document.getElementById("xml_cost"), margin=document.getElementById("xml_margin"), sale=document.getElementById("xml_sale"), custom=document.getElementById("xml_customMargin"), wrap=document.getElementById("xml_customMarginWrap");
+ if(!cost||!margin||!sale)return;
+ let manual=false;
+ const getMargin=()=>margin.value==="Outra"?Number(String(custom?.value||0).replace(",",".")):Number(margin.value||0);
+ const calc=()=>{const c=Number(String(cost.value).replace(",","."))||0; const m=getMargin(); if(!manual)sale.value=(c*(1+m/100)).toFixed(2)};
+ const toggle=()=>{if(wrap)wrap.style.display=margin.value==="Outra"?"block":"none"; manual=false; calc()};
+ cost.addEventListener("input",()=>{manual=false;calc()});
+ margin.addEventListener("change",toggle);
+ if(custom)custom.addEventListener("input",()=>{manual=false;calc()});
+ sale.addEventListener("input",()=>{manual=true});
+ calc();
+}
+function confirmNfeNew(){
+ const code=document.getElementById("xml_code")?.value.trim()||"";
+ const description=document.getElementById("xml_desc")?.value.trim()||"";
+ const qty=Number(document.getElementById("xml_qty")?.value)||0;
+ const cost=Number(String(document.getElementById("xml_cost")?.value||0).replace(",","."))||0;
+ const sale=Number(String(document.getElementById("xml_sale")?.value||0).replace(",","."))||0;
+ const marginEl=document.getElementById("xml_margin");
+ const margin=marginEl?.value==="Outra"?Number(String(document.getElementById("xml_customMargin")?.value||0).replace(",",".")):Number(marginEl?.value||80);
+ if(!description||qty<=0||cost<0||margin<0||sale<0)return alert("Confira descrição, quantidade, custo, margem e preço de venda.");
+ const p={id:nextId(db.products),code,kind:document.getElementById("xml_kind")?.value||"Outro",gender:document.getElementById("xml_gender")?.value||"Feminino",description,size:document.getElementById("xml_size")?.value.trim()||"",cost,margin,sale,stock:qty,observation:"Importado de NF-e XML"};
+ db.products.push(p); nfeImportCreated++; nfeImportIndex++; save(); showNextNfeItem();
+}
+async function importNfeXmlFile(file){
+ if(!file)return;
+ try{ const text=await file.text(); const items=parseNfeXml(text); startNfeXmlImport(items,file.name); }
+ catch(e){ console.error(e); alert("Não foi possível importar a NF-e XML.\n\n"+(e.message||e)); }
+ finally{ const input=document.getElementById("nfeXmlInput"); if(input)input.value=""; }
+}
+
 function deleteProduct(id){if(db.saleItems.some(x=>Number(x.product_id)===Number(id)))return alert("Este produto possui histórico de vendas e não pode ser excluído.");if(confirm("Excluir este produto?")){db.products=db.products.filter(x=>x.id!==id);save();render()}}
 function restock(id){const n=prompt("Quantidade a adicionar:","1");const q=parseInt(n);if(q>0){const p=find(db.products,id);p.stock+=q;p.exhausted_at=null;save();render();toast("Estoque atualizado")}}
 
@@ -776,12 +887,13 @@ if("serviceWorker" in navigator && location.protocol.startsWith("http")){
 }
 
 $("#backupFileInput")?.addEventListener("change",e=>importBackupFile(e.target.files?.[0]));
+$("#nfeXmlInput")?.addEventListener("change",e=>importNfeXmlFile(e.target.files?.[0]));
 $("#importBackupBtn")?.addEventListener("click",openBackupFilePicker);
 $("#mobileImportBackupBtn")?.addEventListener("click",()=>{ closeMobileMenu(); openBackupFilePicker(); });
 $("#installAppBtn")?.addEventListener("click",installApp);
 $("#mobileInstallAppBtn")?.addEventListener("click",()=>{ closeMobileMenu(); installApp(); });
 $("#brand").ondblclick=()=>{const n=prompt("Nome do cabeçalho:",db.title);if(n&&n.trim()){db.title=n.trim();save();render()}};
-window.newProduct=newProduct;window.editProduct=editProduct;window.deleteProduct=deleteProduct;window.restock=restock;window.newClient=newClient;window.editClient=editClient;window.deleteClient=deleteClient;window.clientDetails=clientDetails;window.newSale=newSale;window.saleDetails=saleDetails;window.payment=payment;window.deleteSale=deleteSale;window.whatsapp=whatsapp;window.newSupplier=newSupplier;window.editSupplier=editSupplier;window.deleteSupplier=deleteSupplier;window.supplierDetails=supplierDetails;window.newPayable=newPayable;window.editPayable=editPayable;window.payableDetails=payableDetails;window.supplierPayment=supplierPayment;window.withdrawal=withdrawal;window.go=go;window.closeModal=closeModal;window.saveProduct=saveProduct;window.saveClient=saveClient;window.saveSale=saveSale;window.savePayment=savePayment;window.saveSupplier=saveSupplier;window.savePayable=savePayable;window.saveSupplierPayment=saveSupplierPayment;window.saveWithdrawal=saveWithdrawal;window.exportCsv=exportCsv;window.exportPdf=exportPdf;window.handleReceiptFile=handleReceiptFile;
+window.openNfeXmlPicker=openNfeXmlPicker;window.skipNfeItem=skipNfeItem;window.confirmNfeExisting=confirmNfeExisting;window.confirmNfeNew=confirmNfeNew;window.newProduct=newProduct;window.editProduct=editProduct;window.deleteProduct=deleteProduct;window.restock=restock;window.newClient=newClient;window.editClient=editClient;window.deleteClient=deleteClient;window.clientDetails=clientDetails;window.newSale=newSale;window.saleDetails=saleDetails;window.payment=payment;window.deleteSale=deleteSale;window.whatsapp=whatsapp;window.newSupplier=newSupplier;window.editSupplier=editSupplier;window.deleteSupplier=deleteSupplier;window.supplierDetails=supplierDetails;window.newPayable=newPayable;window.editPayable=editPayable;window.payableDetails=payableDetails;window.supplierPayment=supplierPayment;window.withdrawal=withdrawal;window.go=go;window.closeModal=closeModal;window.saveProduct=saveProduct;window.saveClient=saveClient;window.saveSale=saveSale;window.savePayment=savePayment;window.saveSupplier=saveSupplier;window.savePayable=savePayable;window.saveSupplierPayment=saveSupplierPayment;window.saveWithdrawal=saveWithdrawal;window.exportCsv=exportCsv;window.exportPdf=exportPdf;window.handleReceiptFile=handleReceiptFile;
 initSupabase();
 
 // V56 — autenticação Supabase
