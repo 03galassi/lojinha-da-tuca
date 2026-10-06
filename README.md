@@ -1,1 +1,5 @@
-Lojinha da Tuca V45 — Client ID do Google Drive integrado diretamente ao aplicativo para evitar erro invalid_client em outros dispositivos. Backup do Google Drive continua manual e separado por appProperties (lojinha-da-tuca).
+# Lojinha da Tuca — V47
+
+Nova Venda simplificada: o aplicativo sugere o preço de venda do produto; o valor da venda permanece editável e o desconto percentual é calculado automaticamente. O campo de desconto é somente leitura.
+
+Também mantém a função de saldo a receber antigo da V46.

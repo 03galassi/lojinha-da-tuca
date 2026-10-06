@@ -1,11 +1,13 @@
 // V43 - removido botão duplicado de importação local; Google Drive é o caminho de restauração.
 const KEY="lojinha_tuca_web_v1";
-const UI_VERSION="38";
+const UI_VERSION="53";
 const $=s=>document.querySelector(s);
 const money=v=>new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"}).format(Number(v)||0);
+const dateBR=v=>{if(!v)return "";const s=String(v).trim();if(/^\d{4}-\d{2}-\d{2}$/.test(s)){const [y,m,d]=s.split("-");return `${d}/${m}/${y}`;}if(/^\d{2}\/\d{2}\/\d{4}$/.test(s))return s;const d=new Date(s);return Number.isNaN(d.getTime())?s:d.toLocaleDateString("pt-BR");};
 const today=()=>new Date().toISOString().slice(0,10);
 const uid=()=>Date.now()+Math.floor(Math.random()*10000);
 let db=load();
+if(!Array.isArray(db.legacyReceivables)) db.legacyReceivables=[];
 let page="dashboard";
 
 function load(){
@@ -13,7 +15,7 @@ function load(){
     const x=JSON.parse(localStorage.getItem(KEY));
     if(x) return x;
   }catch(e){}
-  return {title:"LOJINHA DA TUCA",products:[],clients:[],sales:[],saleItems:[],payments:[],suppliers:[],payables:[],supplierPayments:[],withdrawals:[]};
+  return {title:"LOJINHA DA TUCA",products:[],clients:[],sales:[],saleItems:[],payments:[],suppliers:[],payables:[],supplierPayments:[],withdrawals:[],legacyReceivables:[]};
 }
 function save(){localStorage.setItem(KEY,JSON.stringify(db))}
 function toast(t){const e=$("#toast");e.textContent=t;e.classList.add("show");setTimeout(()=>e.classList.remove("show"),2200)}
@@ -106,7 +108,7 @@ function dashIcon(type){
 function dashboard(){
  const stock=db.products.reduce((s,p)=>s+Number(p.stock||0),0);
  const stockValue=db.products.reduce((s,p)=>s+Number(p.stock||0)*Number(p.sale||0),0);
- const receivable=db.sales.reduce((s,x)=>s+Math.max(0,Number(x.total)-Number(x.paid||0)),0);
+ const receivable=db.sales.reduce((s,x)=>s+Math.max(0,Number(x.total)-Number(x.paid||0)),0)+db.legacyReceivables.reduce((s,x)=>s+Math.max(0,Number(x.total)-Number(x.paid||0)),0);
  const payable=db.payables.reduce((s,x)=>s+Math.max(0,Number(x.total)-Number(x.paid||0)),0);
  const todaySales=db.sales.filter(x=>x.sale_date===today()).reduce((s,x)=>s+Number(x.total||0),0);
  const monthKey=today().slice(0,7);
@@ -219,19 +221,20 @@ function deleteClient(id){if(db.sales.some(s=>Number(s.client_id)===Number(id)))
 
 function sales(){
  const q=(document.getElementById("sq")?.value||"").toLowerCase().trim();
- const rows=[...db.sales].sort((a,b)=>b.id-a.id).filter(s=>{const c=find(db.clients,s.client_id);const text=`${s.sale_date} ${c?.name||""} ${s.payment||""} ${s.due_date||""}`.toLowerCase();return text.includes(q)}).map(s=>{const c=find(db.clients,s.client_id),bal=Math.max(0,s.total-s.paid);return `<tr class="${s.due_date&&s.due_date<today()&&bal>0?"row-late":""}" onclick="saleDetails(${s.id})"><td>${s.sale_date}</td><td>${esc(c?.name||"Não informado")}</td><td>${money(s.total)}</td><td>${esc(s.payment||"")}</td><td>${s.installments||1}</td><td>${s.due_date||""}</td><td>${money(s.paid)}</td><td class="money">${money(bal)}</td><td class="nowrap"><button class="icon-btn" onclick="event.stopPropagation();saleDetails(${s.id})">Detalhes</button> <button class="icon-btn" onclick="event.stopPropagation();payment(${s.id})">Pagamento</button> <button class="icon-btn" onclick="event.stopPropagation();deleteSale(${s.id})">Excluir</button></td></tr>`});
+ const rows=[...db.sales].sort((a,b)=>b.id-a.id).filter(s=>{const c=find(db.clients,s.client_id);const text=`${s.sale_date} ${c?.name||""} ${s.payment||""} ${s.due_date||""}`.toLowerCase();return text.includes(q)}).map(s=>{const c=find(db.clients,s.client_id),bal=Math.max(0,s.total-s.paid);return `<tr class="${s.due_date&&s.due_date<today()&&bal>0?"row-late":""}" onclick="saleDetails(${s.id})"><td>${dateBR(s.sale_date)}</td><td>${esc(c?.name||"Não informado")}</td><td>${money(s.total)}</td><td>${esc(s.payment||"")}</td><td>${s.installments||1}</td><td>${dateBR(s.due_date)}</td><td>${money(s.paid)}</td><td class="money">${money(bal)}</td><td class="nowrap"><button class="icon-btn" onclick="event.stopPropagation();saleDetails(${s.id})">Detalhes</button> <button class="icon-btn" onclick="event.stopPropagation();payment(${s.id})">Pagamento</button> <button class="icon-btn" onclick="event.stopPropagation();deleteSale(${s.id})">Excluir</button></td></tr>`});
  return pageHead("Vendas",`<button class="btn primary" onclick="newSale()">+ Nova venda</button>`) + `<div class="panel">${searchBox("sq","Buscar por cliente, data ou forma de pagamento...",q)}${table(["Data","Cliente","Total","Pagamento","Parcelas","Vencimento","Pago","Saldo","Ações"],rows.join(""))}</div>`;
 }
 function saleDetails(id){
  const s=find(db.sales,id); if(!s)return; const c=find(db.clients,s.client_id); const items=db.saleItems.filter(i=>Number(i.sale_id)===Number(id));
  const lista=items.map(i=>{const p=find(db.products,i.product_id);return `<tr><td>${esc(p?.description||"Produto")}</td><td>${esc(p?.size||"")}</td><td>${i.qty}</td><td>${money(i.price)}</td><td>${money(Number(i.qty)*Number(i.price))}</td></tr>`}).join("");
- modal("Detalhes da venda",`<p><b>Data:</b> ${s.sale_date} &nbsp; <b>Cliente:</b> ${esc(c?.name||"Não informado")}</p><p><b>Pagamento:</b> ${esc(s.payment||"")} &nbsp; <b>Parcelas:</b> ${s.installments||1} &nbsp; <b>Vencimento:</b> ${s.due_date||""}</p><p><b>Total:</b> ${money(s.total)} &nbsp; <b>Recebido:</b> ${money(s.paid)} &nbsp; <b>Saldo:</b> ${money(Math.max(0,s.total-s.paid))}</p><div class="panel"><table><thead><tr><th>Produto</th><th>Tamanho</th><th>Qtd.</th><th>Preço</th><th>Subtotal</th></tr></thead><tbody>${lista||'<tr><td colspan="5">Nenhum item</td></tr>'}</tbody></table></div>`,`<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">Fechar</button></div>`)
+ const saleLate=Boolean(s.due_date&&s.due_date<today()&&Number(s.total||0)>Number(s.paid||0));
+ modal("Detalhes da venda",`<p><b>Data:</b> ${dateBR(s.sale_date)} &nbsp; <b>Cliente:</b> ${esc(c?.name||"Não informado")}</p><p><b>Pagamento:</b> ${esc(s.payment||"")} &nbsp; <b>Parcelas:</b> ${s.installments||1} &nbsp; <b>Vencimento:</b> <span class="${saleLate?"late-text":""}">${dateBR(s.due_date)}</span></p><p><b>Total:</b> ${money(s.total)} &nbsp; <b>Recebido:</b> ${money(s.paid)} &nbsp; <b>Saldo:</b> <span class="${saleLate?"late-text":""}">${money(Math.max(0,s.total-s.paid))}</span> ${saleLate?'<span class="late-text"><b>ATRASADO</b></span>':''}</p><div class="panel"><table><thead><tr><th>Produto</th><th>Tamanho</th><th>Qtd.</th><th>Preço</th><th>Subtotal</th></tr></thead><tbody>${lista||'<tr><td colspan="5">Nenhum item</td></tr>'}</tbody></table></div>`,`<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">Fechar</button></div>`)
 }
 function newSale(){
  if(!db.products.some(p=>Number(p.stock)>0))return alert("Não há produtos disponíveis para venda.");
  const clients=[["","Selecione..."],...db.clients.map(c=>[c.id,c.name])];
  const prods=[...db.products.filter(p=>Number(p.stock)>0)];
- modal("Nova venda",`<div class="grid2">${selectField("Cliente","client_id",clients)}${searchableProductField(prods,"")}${formField("Quantidade","qty",1,"number")}${formField("Preço original","original_price",0,"number")}${formField("Valor da venda","sale_price",0,"number")}${selectField("Desconto","discount_option",[["0","Sem desconto"],["5","5%"],["10","10%"],["15","15%"],["20","20%"],["other","Outra"]],"0")}${formField("Desconto %","discount",0,"number")}${selectField("Pagamento","payment",[["Crédito","Crédito"],["À vista","À vista"]],"Crédito")}${selectField("Parcelas","installments",[["1","1x"],["2","2x"],["3","3x"],["4","4x"],["5","5x"],["6","6x"]],1)}${formField("Vencimento","due_date",today(),"date")}</div><div class="panel" style="margin-top:12px"><b>Total da venda: <span id="saleTotal">${money(0)}</span></b></div>`, `<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">← Voltar</button><button class="btn primary" onclick="saveSale()">Confirmar venda</button></div>`);
+ modal("Nova venda",`<div class="grid2">${selectField("Cliente","client_id",clients)}${searchableProductField(prods,"")}${formField("Quantidade","qty",1,"number")}${formField("Valor da venda","sale_price",0,"number")}${formField("Desconto %","discount",0,"number")}<input id="f_original_price" type="hidden" value="0">${selectField("Pagamento","payment",[["Crédito","Crédito"],["À vista","À vista"]],"Crédito")}${selectField("Parcelas","installments",[["1","1x"],["2","2x"],["3","3x"],["4","4x"],["5","5x"],["6","6x"]],1)}${formField("Vencimento","due_date",today(),"date")}</div><div class="panel" style="margin-top:12px"><b>Total da venda: <span id="saleTotal">${money(0)}</span></b></div>`, `<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">← Voltar</button><button class="btn primary" onclick="saveSale()">Confirmar venda</button></div>`);
  const ps=$("#f_product_search"), results=$("#productSearchResults");
  results.addEventListener("pointerdown",e=>{
    const option=e.target.closest(".product-search-option");
@@ -252,13 +255,8 @@ function newSale(){
  ps.addEventListener("input",()=>{ $("#f_product_id").value=""; $("#f_original_price").value="0"; $("#f_sale_price").value="0"; $("#f_discount").value="0"; showResults(ps.value); calcSale(); });
  document.addEventListener("click",function closeProductSearch(e){if(!e.target.closest(".product-search-field")){results.classList.add("hidden");document.removeEventListener("click",closeProductSearch)}});
  ["qty"].forEach(id=>$("#f_"+id).addEventListener("input",calcSale));
- $("#f_discount_option").addEventListener("change",()=>{
-   const opt=$("#f_discount_option").value;
-   if(opt!=="other"){ $("#f_discount").value=Number(opt)||0; updateSaleFromDiscount(); }
-   else { $("#f_discount").focus(); }
- });
  $("#f_sale_price").addEventListener("input",()=>updateSaleFromPrice());
- $("#f_discount").addEventListener("input",()=>updateSaleFromDiscount());
+ if($("#f_discount")){ $("#f_discount").readOnly=true; $("#f_discount").setAttribute("aria-readonly","true"); }
  calcSale();
 }
 function selectSaleProduct(id){
@@ -268,7 +266,6 @@ function selectSaleProduct(id){
  $("#f_original_price").value=Number(p.sale||0).toFixed(2);
  $("#f_sale_price").value=Number(p.sale||0).toFixed(2);
  $("#f_discount").value="0";
- $("#f_discount_option").value="0";
  const results=$("#productSearchResults");
  if(results){
    results.classList.add("hidden");
@@ -287,25 +284,11 @@ function calcSale(){
  if($("#f_original_price"))$("#f_original_price").value=p?Number(p.sale||0).toFixed(2):"0";
  if($("#saleTotal"))$("#saleTotal").textContent=money(price*(parseInt($("#f_qty")?.value)||0));
 }
-function syncDiscountOption(d){
- const opts=[0,5,10,15,20];
- const exact=opts.find(x=>Math.abs(x-Number(d))<0.005);
- if($("#f_discount_option")) $("#f_discount_option").value=exact!==undefined?String(exact):"other";
-}
 function updateSaleFromPrice(){
  const original=Number($("#f_original_price")?.value)||0;
  let price=Number(String($("#f_sale_price")?.value||0).replace(",","."))||0;
  if(price<0)price=0;
- if(original>0){let d=((original-price)/original)*100;if(d<0)d=0;$("#f_discount").value=d.toFixed(2); syncDiscountOption(d)}
- calcSale();
-}
-function updateSaleFromDiscount(){
- const original=Number($("#f_original_price")?.value)||0;
- let d=Number(String($("#f_discount")?.value||0).replace(",","."))||0;
- d=Math.max(0,Math.min(100,d));
- $("#f_discount").value=d;
- syncDiscountOption(d);
- $("#f_sale_price").value=(original*(1-d/100)).toFixed(2);
+ if(original>0){let d=((original-price)/original)*100;if(d<0)d=0;$("#f_discount").value=d.toFixed(2);}
  calcSale();
 }
 function saveSale(){
@@ -325,11 +308,44 @@ function payment(id){
 }
 function savePayment(id){const s=find(db.sales,id),bal=Math.max(0,s.total-s.paid),v=Number($("#f_amount").value)||0;if(v<=0||v>bal)return alert("Valor inválido.");s.paid+=v;db.payments.push({id:nextId(db.payments),sale_id:id,pay_date:$("#f_pay_date").value,amount:v});save();closeModal();render();toast("Pagamento registrado")}
 
+function legacyReceivableForm(){
+ const clients=db.clients.slice().sort((a,b)=>(a.name||"").localeCompare(b.name||""));
+ const clientOptions=`<option value="" selected disabled>Selecione o cliente...</option>${clients.map(c=>`<option value="${esc(c.id)}">${esc(c.name)}</option>`).join("")}`;
+ return `<div class="grid2"><div class="field"><label>Cliente</label><select class="form-control" id="f_client_id">${clientOptions}</select></div>${formField("Descrição","description","Roupas vendidas anteriormente")}${formField("Valor total em aberto","total","","number")}${formField("Número de parcelas","installments","1","number")}${formField("Primeiro vencimento","first_due",today(),"date")}${formField("Intervalo entre parcelas (dias)","interval_days","30","number")}</div><small class="field-help">Este lançamento entra somente em A Receber. Não altera estoque, vendas ou faturamento.</small>`
+}
+function newLegacyReceivable(){
+ if(!db.clients.length)return alert("Cadastre o cliente antes de lançar um saldo a receber.");
+ modal("Cadastrar saldo a receber",legacyReceivableForm(),`<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">← Voltar</button><button class="btn primary" onclick="saveLegacyReceivable()">Criar parcelas</button></div>`)
+}
+function saveLegacyReceivable(){
+ const client_id=Number($("#f_client_id").value),description=$("#f_description").value.trim(),total=Number($("#f_total").value)||0,installments=Math.max(1,Math.min(60,Number($("#f_installments").value)||1)),first=$("#f_first_due").value,interval=Math.max(1,Number($("#f_interval_days").value)||30);
+ if(!client_id)return alert("Selecione o cliente."); if(total<=0)return alert("Informe um valor maior que zero."); if(!first)return alert("Informe o primeiro vencimento.");
+ const base=Math.floor((total/installments)*100)/100; let rest=Math.round((total-base*(installments-1))*100)/100;
+ for(let i=1;i<=installments;i++){
+   const d=new Date(first+"T12:00:00"); d.setDate(d.getDate()+(i-1)*interval);
+   const value=i===installments?rest:base;
+   db.legacyReceivables.push({id:nextId(db.legacyReceivables),client_id,description,total:value,paid:0,due_date:d.toISOString().slice(0,10),installment_number:i,installments,created_date:today()});
+ }
+ save();closeModal();render();toast(`${installments} parcela(s) criada(s) em A Receber`)
+}
+function legacyPayment(id){
+ const x=find(db.legacyReceivables,id),bal=Math.max(0,Number(x?.total||0)-Number(x?.paid||0)); if(!x||bal<=.005)return;
+ modal("Registrar pagamento",`<p>Saldo da parcela: <b>${money(bal)}</b></p><div class="grid2">${formField("Valor","legacy_amount",bal,"number")}${formField("Data","legacy_pay_date",today(),"date")}</div>`,`<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">← Voltar</button><button class="btn primary" onclick="saveLegacyPayment(${id})">Confirmar pagamento</button></div>`)
+}
+function saveLegacyPayment(id){const x=find(db.legacyReceivables,id),bal=Math.max(0,Number(x.total)-Number(x.paid||0)),v=Number($("#f_legacy_amount").value)||0;if(!x||v<=0||v>bal)return alert("Valor inválido.");x.paid+=v;x.last_payment_date=$("#f_legacy_pay_date").value;save();closeModal();render();toast("Pagamento registrado")}
+function deleteLegacyReceivable(id){if(!confirm("Excluir esta parcela antiga?"))return;db.legacyReceivables=db.legacyReceivables.filter(x=>Number(x.id)!==Number(id));save();render();toast("Parcela excluída")}
 function receivables(){
  const q=(document.getElementById("rq")?.value||"").toLowerCase().trim();
- const open=db.sales.filter(s=>s.total>s.paid);
- const rows=open.sort((a,b)=>(a.due_date||"").localeCompare(b.due_date||"")).filter(s=>{const c=find(db.clients,s.client_id);const late=s.due_date&&s.due_date<today();const text=`${c?.name||""} ${s.sale_date} ${s.due_date||""} ${late?"atrasado":"em aberto"}`.toLowerCase();return text.includes(q)}).map(s=>{const c=find(db.clients,s.client_id),bal=s.total-s.paid,late=s.due_date&&s.due_date<today();return `<tr class="${late?"row-late":""}"><td>${esc(c?.name||"Não informado")}</td><td>${s.sale_date}</td><td>${s.due_date||""}</td><td>${money(s.total)}</td><td>${money(s.paid)}</td><td class="money">${money(bal)}</td><td><span class="status ${late?"bad":"open"}">${late?"ATRASADO":"EM ABERTO"}</span></td><td><button class="icon-btn" onclick="payment(${s.id})">Pagamento</button>${c?.phone?` <button class="icon-btn" onclick="whatsapp(${s.id})">WhatsApp</button>`:""}</td></tr>`});
- return pageHead("Contas a Receber") + `<div class="panel">${searchBox("rq","Buscar cliente, vencimento ou status...",q)}${table(["Cliente","Venda","Vencimento","Total","Pago","Saldo","Status","Ações"],rows.join(""))}</div>`;
+ const openSales=db.sales.filter(s=>s.total>s.paid).map(s=>({...s,_kind:"venda"}));
+ const openLegacy=db.legacyReceivables.filter(x=>x.total>x.paid).map(x=>({...x,_kind:"anterior"}));
+ const all=openSales.concat(openLegacy).sort((a,b)=>(a.due_date||"").localeCompare(b.due_date||""));
+ const rows=all.filter(x=>{const c=find(db.clients,x.client_id),late=x.due_date&&x.due_date<today();const text=`${c?.name||""} ${x.sale_date||""} ${x.due_date||""} ${x.description||""} ${late?"atrasado":"em aberto"}`.toLowerCase();return text.includes(q)}).map(x=>{
+   const c=find(db.clients,x.client_id),bal=Number(x.total)-Number(x.paid||0),late=x.due_date&&x.due_date<today(); const origin=x._kind==="anterior"?"ANTERIOR":"VENDA"; const date=x.sale_date||x.created_date||""; const parcel=x.installments>1?`${x.installment_number}/${x.installments}`:"1/1";
+   const action=x._kind==="anterior"?`<button class="icon-btn" onclick="legacyPayment(${x.id})">Pagamento</button> <button class="icon-btn danger-action" onclick="deleteLegacyReceivable(${x.id})">Excluir</button>`:`<button class="icon-btn" onclick="payment(${x.id})">Pagamento</button>${c?.phone?` <button class="icon-btn" onclick="whatsapp(${x.id})">WhatsApp</button>`:""}`;
+   return `<tr class="${late?"row-late":""}"><td>${esc(c?.name||"Não informado")}</td><td>${origin}</td><td>${esc(x.description||"")}</td><td>${dateBR(date)}</td><td>${dateBR(x.due_date)}</td><td>${parcel}</td><td>${money(x.total)}</td><td>${money(x.paid||0)}</td><td class="money">${money(bal)}</td><td><span class="status ${late?"bad":"open"}">${late?"ATRASADO":"EM ABERTO"}</span></td><td>${action}</td></tr>`;
+ });
+ const actions=`<button class="btn primary" onclick="newLegacyReceivable()">+ Saldo a receber antigo</button>`;
+ return pageHead("Contas a Receber",actions) + `<div class="panel"><p class="field-help" style="margin:0 0 10px">Use <b>Saldo a receber antigo</b> para cadastrar parcelas de roupas vendidas antes do aplicativo. Elas entram em A Receber sem alterar estoque nem vendas.</p>${searchBox("rq","Buscar cliente, descrição, vencimento ou status...",q)}${table(["Cliente","Origem","Descrição","Lançamento","Vencimento","Parcela","Total","Pago","Saldo","Status","Ações"],rows.join(""))}</div>`;
 }
 function whatsapp(id){
  const s=find(db.sales,id),c=find(db.clients,s.client_id);
@@ -366,7 +382,7 @@ function deleteSupplier(id){if(db.payables.some(p=>p.supplier_id===id))return al
 
 function payables(){
  const q=(document.getElementById("pq2")?.value||"").toLowerCase().trim();
- const rows=db.payables.sort((a,b)=>(a.due_date||"").localeCompare(b.due_date||"")).filter(p=>{const s=find(db.suppliers,p.supplier_id),bal=p.total-p.paid,late=p.due_date&&p.due_date<today();const text=`${s?.name||""} ${p.description||""} ${p.due_date||""} ${late?"atrasado":bal<=0?"pago":"em aberto"}`.toLowerCase();return text.includes(q)}).map(p=>{const s=find(db.suppliers,p.supplier_id),bal=p.total-p.paid,late=p.due_date&&p.due_date<today();return `<tr class="${late&&bal>0?"row-late":""}" onclick="payableDetails(${p.id})"><td>${esc(s?.name||"Não informado")}</td><td>${esc(p.description)}</td><td>${p.due_date||""}</td><td>${p.installments>1?`${p.installment_number}/${p.installments}`:"1/1"}</td><td>${money(p.total)}</td><td>${money(p.paid)}</td><td class="money">${money(bal)}</td><td><span class="status ${bal<=0?"ok":late?"bad":"open"}">${bal<=0?"PAGO":late?"ATRASADO":"EM ABERTO"}</span></td><td class="payable-actions-cell"><div class="payable-row-actions"><button class="icon-btn" onclick="event.stopPropagation();payableDetails(${p.id})">Detalhes</button><button class="icon-btn" onclick="event.stopPropagation();supplierPayment(${p.id})">Pagamento</button><button class="icon-btn" onclick="event.stopPropagation();editPayable(${p.id})">Editar</button><button class="icon-btn danger-action" onclick="event.stopPropagation();deletePayable(${p.id})">Excluir</button></div></td></tr>`});
+ const rows=db.payables.sort((a,b)=>(a.due_date||"").localeCompare(b.due_date||"")).filter(p=>{const s=find(db.suppliers,p.supplier_id),bal=p.total-p.paid,late=p.due_date&&p.due_date<today();const text=`${s?.name||""} ${p.description||""} ${p.due_date||""} ${late?"atrasado":bal<=0?"pago":"em aberto"}`.toLowerCase();return text.includes(q)}).map(p=>{const s=find(db.suppliers,p.supplier_id),bal=p.total-p.paid,late=p.due_date&&p.due_date<today();return `<tr class="${late&&bal>0?"row-late":""}" onclick="payableDetails(${p.id})"><td>${esc(s?.name||"Não informado")}</td><td>${esc(p.description)}</td><td>${dateBR(p.due_date)}</td><td>${p.installments>1?`${p.installment_number}/${p.installments}`:"1/1"}</td><td>${money(p.total)}</td><td>${money(p.paid)}</td><td class="money">${money(bal)}</td><td><span class="status ${bal<=0?"ok":late?"bad":"open"}">${bal<=0?"PAGO":late?"ATRASADO":"EM ABERTO"}</span></td><td class="payable-actions-cell"><div class="payable-row-actions"><button class="icon-btn" onclick="event.stopPropagation();payableDetails(${p.id})">Detalhes</button><button class="icon-btn" onclick="event.stopPropagation();supplierPayment(${p.id})">Pagamento</button><button class="icon-btn" onclick="event.stopPropagation();editPayable(${p.id})">Editar</button><button class="icon-btn danger-action" onclick="event.stopPropagation();deletePayable(${p.id})">Excluir</button></div></td></tr>`});
  const header=`<div class="payables-page-header" style="display:block!important;width:100%!important;margin:0 0 14px!important;padding:0!important;"><h1 style="display:block!important;width:100%!important;margin:0 0 12px!important;font-size:26px!important;line-height:1.15!important;white-space:nowrap!important;">Contas a Pagar</h1><div class="payables-page-buttons" style="display:grid!important;grid-template-columns:1fr 1fr 1.35fr!important;gap:8px!important;width:100%!important;"><button class="btn ghost" style="width:100%!important;white-space:nowrap!important;" onclick="go('dashboard')">← Voltar</button><button class="btn warn" style="width:100%!important;white-space:nowrap!important;" onclick="withdrawal()">Saque</button><button class="btn primary" style="width:100%!important;white-space:nowrap!important;" onclick="newPayable()">+ Nova conta</button></div></div>`;
  return header + `<div class="panel">${searchBox("pq2","Buscar fornecedor, descrição, vencimento ou status...",q)}${table(["Fornecedor","Descrição","Vencimento","Parcela","Total","Pago","Saldo","Status","Ações"],rows.join(""))}</div>`;
 }
@@ -380,8 +396,8 @@ function deletePayable(id){
  save();render();toast("Lançamento excluído");
 }
 function payableDetails(id){
- const p=find(db.payables,id); if(!p)return; const s=find(db.suppliers,p.supplier_id); const status=p.paid>=p.total?"PAGO":(p.due_date&&p.due_date<today()?"ATRASADO":"EM ABERTO");
- modal("Detalhes da compra / conta a pagar",`<div class="detail-grid"><p><b>Fornecedor:</b> ${esc(s?.name||"Não informado")}</p><p><b>Descrição:</b> ${esc(p.description||"")}</p><p><b>Vencimento:</b> ${p.due_date||""}</p><p><b>Parcela:</b> ${p.installments>1?`${p.installment_number}/${p.installments}`:"1/1"}</p><p><b>Total da compra:</b> ${money(p.installments_total||p.total)}</p><p><b>Valor da parcela:</b> ${money(p.total)}</p><p><b>Pago:</b> ${money(p.paid)}</p><p><b>Saldo:</b> ${money(Math.max(0,p.total-p.paid))}</p><p><b>Status:</b> ${status}</p></div>`,`<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">Fechar</button><button class="btn primary" onclick="closeModal();editPayable(${id})">Editar</button></div>`)
+ const p=find(db.payables,id); if(!p)return; const s=find(db.suppliers,p.supplier_id); const status=p.paid>=p.total?"PAGO":(p.due_date&&p.due_date<today()?"ATRASADO":"EM ABERTO"); const payLate=status==="ATRASADO";
+ modal("Detalhes da compra / conta a pagar",`<div class="detail-grid"><p><b>Fornecedor:</b> ${esc(s?.name||"Não informado")}</p><p><b>Descrição:</b> ${esc(p.description||"")}</p><p><b>Vencimento:</b> <span class="${payLate?"late-text":""}">${dateBR(p.due_date)}</span></p><p><b>Parcela:</b> ${p.installments>1?`${p.installment_number}/${p.installments}`:"1/1"}</p><p><b>Total da compra:</b> ${money(p.installments_total||p.total)}</p><p><b>Valor da parcela:</b> ${money(p.total)}</p><p><b>Pago:</b> ${money(p.paid)}</p><p><b>Saldo:</b> <span class="${payLate?"late-text":""}">${money(Math.max(0,p.total-p.paid))}</span></p><p><b>Status:</b> <span class="${payLate?"late-text":""}">${status}</span></p></div>`,`<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">Fechar</button><button class="btn primary" onclick="closeModal();editPayable(${id})">Editar</button></div>`)
 }
 function addMonths(dateStr, months){
  const d=new Date((dateStr||today())+"T12:00:00");
@@ -480,14 +496,14 @@ function saveWithdrawal(){const v=Number($("#f_amount").value)||0;if(v<=0)return
 
 function finished(){
  const q=(document.getElementById("finq")?.value||"").toLowerCase().trim();
- const rows=db.sales.filter(s=>s.total>0&&s.paid>=s.total).sort((a,b)=>b.id-a.id).filter(s=>{const c=find(db.clients,s.client_id);const text=`${s.sale_date} ${c?.name||""} ${s.payment||""} ${s.due_date||""}`.toLowerCase();return text.includes(q)}).map(s=>{const c=find(db.clients,s.client_id);return `<tr onclick="saleDetails(${s.id})"><td>${s.sale_date}</td><td>${esc(c?.name||"Não informado")}</td><td>${money(s.total)}</td><td>${money(s.paid)}</td><td>${esc(s.payment)}</td><td>${s.installments||1}</td><td>${s.due_date||""}</td><td><button class="icon-btn" onclick="event.stopPropagation();saleDetails(${s.id})">Detalhes</button> <button class="icon-btn" onclick="event.stopPropagation();deleteSale(${s.id})">Excluir</button></td></tr>`});
+ const rows=db.sales.filter(s=>s.total>0&&s.paid>=s.total).sort((a,b)=>b.id-a.id).filter(s=>{const c=find(db.clients,s.client_id);const text=`${s.sale_date} ${c?.name||""} ${s.payment||""} ${s.due_date||""}`.toLowerCase();return text.includes(q)}).map(s=>{const c=find(db.clients,s.client_id);return `<tr onclick="saleDetails(${s.id})"><td>${dateBR(s.sale_date)}</td><td>${esc(c?.name||"Não informado")}</td><td>${money(s.total)}</td><td>${money(s.paid)}</td><td>${esc(s.payment)}</td><td>${s.installments||1}</td><td>${dateBR(s.due_date)}</td><td><button class="icon-btn" onclick="event.stopPropagation();saleDetails(${s.id})">Detalhes</button> <button class="icon-btn" onclick="event.stopPropagation();deleteSale(${s.id})">Excluir</button></td></tr>`});
  return pageHead("Vendas Finalizadas")+`<div class="panel">${searchBox("finq","Buscar cliente, data ou pagamento...",q)}${table(["Data","Cliente","Total","Recebido","Pagamento","Parcelas","Vencimento","Ações"],rows.join(""))}</div>`;
 }
 function reports(){
  const salesTotal=db.sales.reduce((s,x)=>s+Number(x.total||0),0);
- const received=db.sales.reduce((s,x)=>s+Number(x.paid||0),0);
+ const received=db.sales.reduce((s,x)=>s+Number(x.paid||0),0)+db.legacyReceivables.reduce((s,x)=>s+Number(x.paid||0),0);
  const stock=db.products.reduce((s,p)=>s+Number(p.stock||0)*Number(p.sale||0),0);
- const rec=db.sales.reduce((s,x)=>s+Math.max(0,Number(x.total||0)-Number(x.paid||0)),0);
+ const rec=db.sales.reduce((s,x)=>s+Math.max(0,Number(x.total||0)-Number(x.paid||0)),0)+db.legacyReceivables.reduce((s,x)=>s+Math.max(0,Number(x.total||0)-Number(x.paid||0)),0);
  const pay=db.payables.reduce((s,p)=>s+Math.max(0,Number(p.total||0)-Number(p.paid||0)),0);
  const resultado=stock+rec-pay;
  const withdraw=db.withdrawals.reduce((s,x)=>s+Number(x.amount||0),0);
@@ -496,12 +512,12 @@ function reports(){
  return pageHead("Relatório da loja",`<button class="btn ghost" onclick="exportPdf()">Exportar PDF</button>`) + `
  <div class="report-hero"><h2>Visão geral da Lojinha da Tuca</h2><p>Resumo financeiro, vendas, estoque e compromissos da loja.</p></div>
  <div class="report-grid">
-  <div class="report-card report-purple"><span>Vendas hoje</span><strong>${money(todaySales)}</strong></div>
-  <div class="report-card report-blue"><span>Total vendido</span><strong>${money(salesTotal)}</strong></div>
-  <div class="report-card report-orange"><span>A receber</span><strong>${money(rec)}</strong></div>
-  <div class="report-card report-green"><span>Estoque (preço de venda)</span><strong>${money(stock)}</strong></div>
+  <button class="report-card report-purple report-card-click" onclick="reportDetail('today')"><span>Vendas hoje</span><strong>${money(todaySales)}</strong><em>Ver detalhes →</em></button>
+  <button class="report-card report-blue report-card-click" onclick="reportDetail('sales')"><span>Total vendido</span><strong>${money(salesTotal)}</strong><em>Ver detalhes →</em></button>
+  <button class="report-card report-orange report-card-click" onclick="reportDetail('receivable')"><span>A receber</span><strong>${money(rec)}</strong><em>Ver detalhes →</em></button>
+  <button class="report-card report-green report-card-click" onclick="reportDetail('stock')"><span>Estoque (preço de venda)</span><strong>${money(stock)}</strong><em>Ver detalhes →</em></button>
  </div>
- <div class="report-balance"><div class="label">BALANÇO DA LOJA</div><strong>${money(resultado)}</strong><div class="muted">Estoque + A receber − A pagar</div></div>
+ <button class="report-balance report-card-click" onclick="reportDetail('balance')"><div class="label">BALANÇO DA LOJA</div><strong>${money(resultado)}</strong><div class="muted">Estoque + A receber − A pagar</div><em>Ver composição detalhada →</em></button>
  <div class="report-section">${table(["INDICADOR","VALOR"],`
  <tr><td>Total recebido</td><td>${money(received)}</td></tr>
  <tr><td>Valor a pagar</td><td>${money(pay)}</td></tr>
@@ -510,6 +526,37 @@ function reports(){
  <tr><td>Clientes cadastrados</td><td>${db.clients.length}</td></tr>
  <tr><td>Produtos cadastrados</td><td>${db.products.length}</td></tr>
  <tr><td>Fornecedores cadastrados</td><td>${db.suppliers.length}</td></tr>`)} </div>`;
+}
+
+
+function reportDetail(type){
+ const title={today:'Vendas de hoje',sales:'Detalhamento do total vendido',receivable:'Detalhamento de A receber',stock:'Detalhamento do estoque',balance:'Composição do balanço da loja'}[type]||'Detalhamento';
+ let body='';
+ if(type==='today'||type==='sales'){
+   const list=db.sales.filter(x=>type==='today'?x.sale_date===today():true).sort((a,b)=>Number(b.id)-Number(a.id));
+   const total=list.reduce((s,x)=>s+Number(x.total||0),0);
+   const rows=list.map(x=>{const c=find(db.clients,x.client_id);const late=x.due_date&&x.due_date<today()&&Number(x.total||0)>Number(x.paid||0);return `<tr class="${late?'row-late':''}"><td>${esc(x.sale_date||'')}</td><td>${esc(c?.name||'Não informado')}</td><td>${money(x.total)}</td><td>${money(x.paid||0)}</td><td>${money(Math.max(0,Number(x.total||0)-Number(x.paid||0)))} ${late?'<b>ATRASADO</b>':''}</td></tr>`}).join('');
+   body=`<div class="detail-summary"><b>${list.length}</b> venda(s) &nbsp;•&nbsp; <b>${money(total)}</b></div>${table(['Data','Cliente','Total','Recebido','Saldo'],rows,'Nenhuma venda encontrada.')}`;
+ } else if(type==='receivable'){
+   const sales=db.sales.filter(x=>Number(x.total||0)>Number(x.paid||0)).map(x=>{const c=find(db.clients,x.client_id);return {date:x.due_date||'',client:c?.name||'Não informado',desc:'Venda',total:Number(x.total||0)-Number(x.paid||0),status:(x.due_date&&x.due_date<today())?'ATRASADO':'EM ABERTO'};});
+   const legacy=db.legacyReceivables.filter(x=>Number(x.total||0)>Number(x.paid||0)).map(x=>{const c=find(db.clients,x.client_id);return {date:x.due_date||'',client:c?.name||'Não informado',desc:x.description||'Saldo anterior',total:Number(x.total||0)-Number(x.paid||0),status:(x.due_date&&x.due_date<today())?'ATRASADO':'EM ABERTO'};});
+   const list=[...sales,...legacy].sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+   const total=list.reduce((s,x)=>s+x.total,0);
+   const rows=list.map(x=>`<tr class="${x.status==='ATRASADO'?'row-late':''}"><td>${esc(x.client)}</td><td>${esc(x.desc)}</td><td>${esc(x.date||'')}</td><td>${money(x.total)}</td><td>${x.status}</td></tr>`).join('');
+   body=`<div class="detail-summary"><b>${list.length}</b> recebimento(s) em aberto &nbsp;•&nbsp; <b>${money(total)}</b></div>${table(['Cliente','Origem','Vencimento','Saldo','Status'],rows,'Nenhum valor a receber.')}`;
+ } else if(type==='stock'){
+   const list=db.products.filter(p=>Number(p.stock||0)>0);
+   const total=list.reduce((s,p)=>s+Number(p.stock||0)*Number(p.sale||0),0);
+   const rows=list.map(p=>`<tr><td>${esc(p.kind||'')}</td><td>${esc(p.description||'')}</td><td>${esc(p.size||'')}</td><td>${p.stock}</td><td>${money(p.sale)}</td><td>${money(Number(p.stock||0)*Number(p.sale||0))}</td></tr>`).join('');
+   body=`<div class="detail-summary"><b>${list.length}</b> produto(s) com estoque &nbsp;•&nbsp; <b>${money(total)}</b></div>${table(['Tipo','Descrição','Tamanho','Qtd.','Preço venda','Valor estoque'],rows,'Nenhum produto em estoque.')}`;
+ } else if(type==='balance'){
+   const stock=db.products.reduce((s,p)=>s+Number(p.stock||0)*Number(p.sale||0),0);
+   const rec=db.sales.reduce((s,x)=>s+Math.max(0,Number(x.total||0)-Number(x.paid||0)),0)+db.legacyReceivables.reduce((s,x)=>s+Math.max(0,Number(x.total||0)-Number(x.paid||0)),0);
+   const pay=db.payables.reduce((s,p)=>s+Math.max(0,Number(p.total||0)-Number(p.paid||0)),0);
+   const result=stock+rec-pay;
+   body=`<div class="balance-detail"><div><span>Estoque (preço de venda)</span><strong>${money(stock)}</strong></div><div><span>+ A receber</span><strong>${money(rec)}</strong></div><div><span>− A pagar</span><strong>${money(pay)}</strong></div><hr><div><span>= Balanço da loja</span><strong>${money(result)}</strong></div></div>`;
+ }
+ modal(title,body,`<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">← Voltar</button></div>`);
 }
 
 function exportPdf(){
@@ -521,7 +568,7 @@ function exportPdf(){
 
 function exportCsv(){
  const stock=db.products.reduce((s,p)=>s+Number(p.stock||0)*Number(p.sale||0),0);
- const rec=db.sales.reduce((s,x)=>s+Math.max(0,Number(x.total||0)-Number(x.paid||0)),0);
+ const rec=db.sales.reduce((s,x)=>s+Math.max(0,Number(x.total||0)-Number(x.paid||0)),0)+db.legacyReceivables.reduce((s,x)=>s+Math.max(0,Number(x.total||0)-Number(x.paid||0)),0);
  const pay=db.payables.reduce((s,x)=>s+Math.max(0,Number(x.total||0)-Number(x.paid||0)),0);
  const rows=[["Indicador","Valor"],["Total vendido",db.sales.reduce((s,x)=>s+Number(x.total||0),0)],["Total recebido",db.sales.reduce((s,x)=>s+Number(x.paid||0),0)],["Estoque a preço de venda",stock],["A receber",rec],["A pagar",pay],["Estoque + A receber - A pagar",stock+rec-pay]];
  const csv=rows.map(r=>r.map(x=>`"${String(x).replaceAll('"','""')}"`).join(";")).join("\n");download("relatorio_tuca.csv",new Blob(["\ufeff"+csv],{type:"text/csv;charset=utf-8"}))}

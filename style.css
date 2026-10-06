@@ -585,3 +585,92 @@ body.theme-dark .modal-head{background:var(--theme-surface)}
 /* Escolha de tema */
 .appearance-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:14px}.appearance-choice{display:grid;grid-template-columns:46px 1fr;grid-template-rows:auto auto;gap:2px 10px;align-items:center;border:1px solid #dfe4e7;background:#fff;border-radius:12px;padding:10px;text-align:left;cursor:pointer;color:#263238}.appearance-choice:hover{box-shadow:0 4px 14px rgba(0,0,0,.10);transform:translateY(-1px)}.appearance-choice span{font-size:11px;color:#78909c}.appearance-swatch{width:46px;height:46px;border-radius:10px;grid-row:1/3}.swatch-original{background:linear-gradient(135deg,#fff 45%,#263238 46%)}.swatch-purple{background:linear-gradient(135deg,#5b21b6 0 50%,#eee7ff 50%)}.swatch-blue{background:linear-gradient(135deg,#1565c0 0 50%,#e4f0ff 50%)}.swatch-green{background:linear-gradient(135deg,#18794e 0 50%,#e3f5e9 50%)}.swatch-dark{background:linear-gradient(135deg,#111018 0 50%,#8b5cf6 50%)}.swatch-light{background:linear-gradient(135deg,#55554f 0 50%,#f7f7f5 50%)}
 @media(max-width:800px){.appearance-options{grid-template-columns:1fr}.appearance-choice{min-height:66px}}
+
+/* V47 — desconto calculado automaticamente */
+#f_discount{background:#f1edf7!important;color:#6b5c7d!important;cursor:not-allowed}
+
+
+/* V51 - cards do relatório abrem detalhamento */
+.report-card-click{width:100%;border:0;text-align:left;cursor:pointer;position:relative;font:inherit;transition:transform .15s ease,filter .15s ease}
+.report-card-click:hover{transform:translateY(-2px);filter:brightness(1.04)}
+.report-card-click em{display:block;font-style:normal;font-size:11px;margin-top:8px;opacity:.9}
+.report-balance.report-card-click{color:inherit;background:#fff;text-align:left}
+.balance-detail{display:grid;gap:10px}
+.balance-detail>div{display:flex;justify-content:space-between;align-items:center;padding:13px 14px;background:#f7f3ff;border-radius:12px}
+.balance-detail span{color:#5d526b}.balance-detail strong{color:#35108b;font-size:18px}
+.balance-detail hr{width:100%;border:0;border-top:1px solid #ddd;margin:2px 0}
+
+/* V52 - qualquer item em atraso fica destacado em vermelho */
+.late-text{color:#c62828!important;font-weight:800!important}.row-late td{color:#c62828!important;font-weight:700!important}.row-late td .status.bad{color:#c62828!important}.row-late .icon-btn{color:#c62828!important;border-color:#efb0b0!important}
+
+/* V54 — padronização dos botões em grupos próximos */
+.top-actions,
+.page-head .actions,
+.modal-actions,
+.payables-head-actions,
+.payables-page-buttons,
+.shortcuts-actions,
+.receipt-actions,
+.actions-group,
+.form-actions,
+.card-actions,
+.row-actions{
+  align-items:stretch;
+}
+
+.top-actions > .btn,
+.top-actions > .file-btn,
+.page-head .actions > .btn,
+.modal-actions > .btn,
+.payables-head-actions > .btn,
+.payables-page-buttons > .btn,
+.shortcuts-actions > .btn,
+.receipt-actions > .btn,
+.actions-group > .btn,
+.form-actions > .btn,
+.card-actions > .btn,
+.row-actions > .btn{
+  flex:1 1 0;
+  min-width:0;
+  box-sizing:border-box;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+}
+
+/* Grupos que já usam grid mantêm colunas de mesma largura */
+.payables-head-actions > .btn,
+.payables-page-buttons > .btn{
+  width:100%;
+}
+
+/* Ações de tabela com 4 botões: todos com a mesma largura */
+.payable-row-actions .icon-btn,
+.row-actions .icon-btn{
+  flex:1 1 0;
+  min-width:0;
+  box-sizing:border-box;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+}
+
+@media(max-width:800px){
+  .top-actions > .btn,
+  .top-actions > .file-btn,
+  .page-head .actions > .btn,
+  .modal-actions > .btn,
+  .payables-head-actions > .btn,
+  .payables-page-buttons > .btn,
+  .shortcuts-actions > .btn,
+  .receipt-actions > .btn,
+  .actions-group > .btn,
+  .form-actions > .btn,
+  .card-actions > .btn,
+  .row-actions > .btn{
+    flex:1 1 0 !important;
+    min-width:0 !important;
+  }
+}
