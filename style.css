@@ -754,3 +754,102 @@ body.theme-dark .modal-head{background:var(--theme-surface)}
  .home-tile>span:last-child{font-size:12px!important}
  .home-tile:after{top:12px!important;left:calc(50% - 34px)!important;width:29px!important;height:11px!important}
 }
+
+/* V67 — identidade boutique / vestuário */
+body{
+  background:
+    linear-gradient(rgba(250,235,239,.68),rgba(250,235,239,.68)),
+    url('./boutique-bg.jpg') center/cover fixed;
+  color:#292329;
+}
+.app{min-height:100vh;background:transparent}
+.topbar{background:rgba(255,248,248,.90);backdrop-filter:blur(10px);border-bottom:1px solid rgba(190,145,155,.28);box-shadow:0 4px 18px rgba(90,45,55,.08)}
+.tabs{background:rgba(255,248,248,.88);backdrop-filter:blur(10px);border-bottom:1px solid rgba(190,145,155,.25)}
+.tabs button.active{background:#d92f75}
+main{background:rgba(255,248,248,.18);border-radius:22px}
+.home-layout{background:rgba(255,248,248,.36);border:1px solid rgba(255,255,255,.65);border-radius:28px;padding:18px;box-shadow:0 15px 45px rgba(80,40,50,.10);backdrop-filter:blur(7px)}
+.home-welcome{background:rgba(255,248,248,.78)!important;border:1px solid rgba(217,47,117,.16)!important;box-shadow:0 8px 24px rgba(80,40,50,.08)}
+.home-shortcuts .home-tile{background:rgba(255,250,250,.88)!important;border:1px solid rgba(255,255,255,.9)!important;box-shadow:0 12px 28px rgba(80,40,50,.14)!important}
+.home-shortcuts .home-tile:hover{transform:translateY(-4px);box-shadow:0 18px 32px rgba(80,40,50,.20)!important}
+.home-panel-title,.home-metric,.home-stock{background:rgba(255,250,250,.88)!important;backdrop-filter:blur(8px);border-color:rgba(190,145,155,.25)!important;box-shadow:0 8px 24px rgba(80,40,50,.10)}
+.card,.panel{background:rgba(255,250,250,.94);border-color:rgba(190,145,155,.25);box-shadow:0 8px 24px rgba(80,40,50,.08)}
+.btn.primary{background:#d92f75}
+.btn.ghost{background:#fff0f4;color:#6f2745}
+.mobile-drawer{background:#fff7f8}
+.mobile-drawer-head{background:linear-gradient(135deg,#d92f75,#f06c9b)}
+@media(max-width:800px){
+ body{background:linear-gradient(rgba(250,235,239,.58),rgba(250,235,239,.58)),url('./boutique-bg.jpg') center/cover fixed}
+ .topbar{background:rgba(255,248,248,.88);backdrop-filter:blur(10px)}
+ main{padding:12px 10px 30px}
+ .home-layout{padding:10px;border-radius:24px;background:rgba(255,248,248,.28)}
+ .home-shortcuts .home-tile{background:rgba(255,250,250,.82)!important}
+}
+
+/* V68 — visual boutique fiel ao modelo aprovado: desktop e celular */
+.home-layout{
+  background-image:linear-gradient(rgba(255,248,246,.58),rgba(255,248,246,.66)),url('./boutique-bg.jpg') !important;
+  background-size:cover !important;
+  background-position:center !important;
+  background-attachment:fixed !important;
+  color:#202124 !important;
+  min-height:calc(100vh - 150px) !important;
+  padding:30px 34px 42px !important;
+  border-radius:0 !important;
+}
+.home-layout:before{display:none!important}
+.home-welcome{max-width:1220px!important;margin:0 auto 18px!important;background:rgba(255,255,255,.76)!important;border:1px solid rgba(255,255,255,.9)!important;border-radius:24px!important;padding:18px 22px!important;box-shadow:0 12px 30px rgba(80,45,30,.12)!important;backdrop-filter:blur(10px)!important}
+.home-welcome strong{font-size:30px!important;color:#202124!important}
+.home-welcome small,.home-date{color:#6f5d5b!important}
+.home-action{max-width:1220px!important;margin:0 auto 18px!important}
+.home-action .btn.primary{background:linear-gradient(135deg,#f02f83,#d71e68)!important;border:0!important;box-shadow:0 9px 22px rgba(215,30,104,.25)!important}
+.home-shortcuts{max-width:1220px!important;grid-template-columns:repeat(3,1fr)!important;gap:22px!important;margin:0 auto 30px!important}
+.home-tile{min-height:170px!important;border:1px solid rgba(255,255,255,.75)!important;border-radius:26px!important;background:rgba(255,255,255,.82)!important;color:#161616!important;box-shadow:0 14px 28px rgba(74,43,32,.18),inset 0 1px 0 rgba(255,255,255,.9)!important;backdrop-filter:blur(8px)!important;gap:13px!important;font-size:20px!important;font-weight:900!important}
+.home-tile:nth-child(n){background:rgba(255,255,255,.82)!important}
+.home-tile:hover{transform:translateY(-5px)!important;box-shadow:0 20px 34px rgba(74,43,32,.22),inset 0 1px 0 rgba(255,255,255,.95)!important}
+.home-tile-icon{width:92px!important;height:92px!important;padding:17px!important;border-radius:27px!important;color:#fff!important;box-shadow:0 11px 20px rgba(40,25,25,.20),inset 0 2px 5px rgba(255,255,255,.4)!important;background:linear-gradient(145deg,#ff4d9a,#df176c)!important}
+.home-tile:nth-child(2) .home-tile-icon{background:linear-gradient(145deg,#5e55ff,#3322d4)!important}
+.home-tile:nth-child(3) .home-tile-icon{background:linear-gradient(145deg,#ffbd43,#f18a00)!important}
+.home-tile:nth-child(4) .home-tile-icon{background:linear-gradient(145deg,#25aaf4,#0879d0)!important}
+.home-tile:nth-child(5) .home-tile-icon{background:linear-gradient(145deg,#32d884,#08a85e)!important}
+.home-tile:nth-child(6) .home-tile-icon{background:linear-gradient(145deg,#ff626f,#ed1f36)!important}
+.home-tile:nth-child(7) .home-tile-icon{background:linear-gradient(145deg,#ffc43b,#f0a000)!important}
+.home-tile:nth-child(8) .home-tile-icon{background:linear-gradient(145deg,#ff4d9a,#df176c)!important}
+.home-tile:nth-child(9) .home-tile-icon{background:linear-gradient(145deg,#6a5cff,#3926d7)!important}
+.home-tile-icon svg{width:100%!important;height:100%!important;color:#fff!important;filter:drop-shadow(0 2px 1px rgba(0,0,0,.12))}
+.home-panel-title{max-width:1220px!important;margin:0 auto 12px!important;color:#202124!important}
+.home-panel-title h1{color:#202124!important;font-size:27px!important}
+.home-panel-title span{color:#d51e68!important;font-weight:800}
+.home-metrics{max-width:1220px!important;grid-template-columns:repeat(3,1fr)!important;gap:14px!important}
+.home-metric{min-height:105px!important;border:1px solid rgba(255,255,255,.8)!important;border-radius:20px!important;box-shadow:0 10px 22px rgba(74,43,32,.14)!important;color:#202124!important;background:rgba(255,255,255,.84)!important;backdrop-filter:blur(8px)!important}
+.home-metric:after{background:rgba(239,49,126,.08)!important}
+.home-metric span b,.home-metric span strong{color:#202124!important}
+.home-metric i{color:#fff!important;padding:10px;border-radius:16px;background:linear-gradient(145deg,#ff4d9a,#df176c)!important}
+.home-metric.metric-clients i,.home-metric.metric-pay i{background:linear-gradient(145deg,#ffbd43,#f18a00)!important}
+.home-metric.metric-products i,.home-metric.metric-month i{background:linear-gradient(145deg,#5e55ff,#3322d4)!important}
+.home-metric.metric-receive i{background:linear-gradient(145deg,#32d884,#08a85e)!important}
+.home-stock{max-width:1220px!important;margin:16px auto 0!important;background:rgba(255,255,255,.78)!important;border:1px solid rgba(255,255,255,.9)!important;color:#5e5350!important;box-shadow:0 8px 18px rgba(74,43,32,.10)!important}
+.home-stock strong{color:#d51e68!important}
+@media(min-width:801px){
+  body,.app{background:#f5e8e4!important}
+  .topbar{background:rgba(255,255,255,.94)!important;color:#202124!important;border-bottom:1px solid #ead8d3!important;backdrop-filter:blur(12px)!important}
+  .brand #appTitle{color:#202124!important}.brand small{color:#7a6865!important}
+  .top-actions .btn.ghost{background:#fff0f5!important;color:#c91862!important}
+  .tabs{background:rgba(255,255,255,.94)!important;border-bottom:1px solid #ead8d3!important}
+  .tabs button{color:#6c5b58!important}.tabs button:hover{background:#ffe7ef!important}.tabs button.active{background:#ec2f7d!important;color:#fff!important}
+}
+@media(max-width:1100px) and (min-width:801px){.home-shortcuts{grid-template-columns:repeat(3,1fr)!important}.home-metrics{grid-template-columns:repeat(2,1fr)!important}.home-tile{min-height:145px!important}}
+@media(max-width:800px){
+ body,.app,main{background:#f5e8e4!important;color:#202124!important}
+ .home-layout{min-height:calc(100vh - 78px)!important;padding:18px 12px 28px!important;background-image:linear-gradient(rgba(255,248,246,.64),rgba(255,248,246,.72)),url('./boutique-bg.jpg') !important;background-size:cover!important;background-position:center!important;background-attachment:scroll!important}
+ .home-shortcuts{grid-template-columns:repeat(3,1fr)!important;gap:11px!important;margin-bottom:22px!important}
+ .home-tile{min-height:122px!important;border-radius:20px!important;font-size:12px!important;gap:8px!important;padding:8px 4px!important}
+ .home-tile-icon{width:62px!important;height:62px!important;padding:12px!important;border-radius:19px!important}
+ .home-welcome{display:flex!important;padding:12px 14px!important;margin-bottom:12px!important;border-radius:18px!important}.home-welcome strong{font-size:20px!important}.home-welcome small{font-size:12px!important}.home-date{font-size:11px!important}
+ .home-action{display:none!important}
+ .home-panel-title{margin-bottom:9px!important}.home-panel-title h1{font-size:21px!important}
+ .home-metrics{grid-template-columns:1fr!important;gap:9px!important}.home-metric{min-height:78px!important;border-radius:16px!important;padding:10px 13px!important}.home-metric i{width:44px!important;height:44px!important;padding:8px!important}
+ .home-stock{font-size:11px!important}
+ .topbar{background:rgba(255,255,255,.94)!important;border-bottom:1px solid #ead8d3!important}
+ .brand #appTitle{color:#202124!important}.brand small{color:#7a6865!important}
+ .mobile-menu-btn{background:#ec2f7d!important;color:#fff!important}
+}

@@ -1,1 +1,1 @@
-Lojinha da Tuca V65 - mesmo aplicativo, com painel mobile em estilo launcher 3D/floating inspirado na referência enviada. Funções preservadas.
+Lojinha da Tuca V68 — visual boutique fiel ao modelo aprovado. Base funcional preservada; alteração visual apenas na tela inicial.
