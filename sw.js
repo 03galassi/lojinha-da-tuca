@@ -1,9 +1,9 @@
-const CACHE = "tuca-v58";
+const CACHE = "tuca-v69";
 const ASSETS = [
   "./",
   "./index.html",
   "./style.css",
-  "./app.js?v=58.20261006",
+  "./app.js?v=69.20261007",
   "./manifest.json",
   "./icon-192.png",
   "./icon-512.png",
