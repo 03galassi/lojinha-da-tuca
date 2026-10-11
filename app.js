@@ -507,6 +507,32 @@ function updateSaleFromPrice(){
  if(original>0){let d=((original-price)/original)*100;if(d<0)d=0;$("#f_discount").value=d.toFixed(2);}
  calcSale();
 }
+function addMonthsClamped(dateStr, months){
+ const parts=String(dateStr||today()).split("-").map(Number);
+ const y=parts[0],m=parts[1],day=parts[2];
+ const first=new Date(y,m-1+months,1,12,0,0);
+ const lastDay=new Date(first.getFullYear(),first.getMonth()+1,0,12,0,0).getDate();
+ const d=Math.min(day,lastDay);
+ return `${first.getFullYear()}-${String(first.getMonth()+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+}
+function buildSaleInstallmentSchedule(s, paidValue){
+ const count=Math.max(1,Math.min(60,Number(s.installments)||1));
+ const cents=Math.max(0,Math.round(Number(s.total||0)*100));
+ const base=Math.floor(cents/count), remainder=cents-base*count;
+ let remaining=Math.max(0,Math.round(Number(paidValue??s.paid??0)*100));
+ return Array.from({length:count},(_,i)=>{
+   const amountCents=base+(i<remainder?1:0);
+   const paidCents=Math.min(amountCents,remaining); remaining-=paidCents;
+   return {installment_number:i+1,installments:count,total:amountCents/100,paid:paidCents/100,due_date:addMonthsClamped(s.due_date||s.sale_date||today(),i)};
+ });
+}
+function saleInstallments(s){
+ const count=Math.max(1,Math.min(60,Number(s.installments)||1));
+ if(!Array.isArray(s.installmentSchedule)||s.installmentSchedule.length!==count){
+   s.installmentSchedule=buildSaleInstallmentSchedule(s,Number(s.paid||0));
+ }
+ return s.installmentSchedule;
+}
 function saveSale(){
  const p=find(db.products,$("#f_product_id").value),q=parseInt($("#f_qty").value)||0,cid=$("#f_client_id").value;
  if(!p||q<=0)return alert("Selecione produto e quantidade.");
@@ -516,13 +542,32 @@ function saveSale(){
  if(unitPrice<=0)return alert("Informe o valor da venda.");
  const pay=$("#f_payment").value, paid=pay==="À vista"?total:0;
  const s={id:nextId(db.sales),client_id:Number(cid),sale_date:today(),total,paid,payment:pay,installments:parseInt($("#f_installments").value)||1,due_date:$("#f_due_date").value,discount:Number($("#f_discount").value)||0};
+ s.installmentSchedule=buildSaleInstallmentSchedule(s,paid);
  db.sales.push(s);db.saleItems.push({id:nextId(db.saleItems),sale_id:s.id,product_id:p.id,qty:q,price:unitPrice});p.stock-=q;if(p.stock===0)p.exhausted_at=today();save();closeModal();render();toast("Venda registrada")}
 function deleteSale(id){if(!confirm("Excluir a venda? O item voltará ao estoque e os pagamentos serão removidos."))return;db.saleItems.filter(x=>x.sale_id===id).forEach(it=>{const p=find(db.products,it.product_id);if(p)p.stock+=Number(it.qty)});db.saleItems=db.saleItems.filter(x=>x.sale_id!==id);db.payments=db.payments.filter(x=>x.sale_id!==id);db.sales=db.sales.filter(x=>x.id!==id);save();render();toast("Venda excluída")}
-function payment(id){
- const s=find(db.sales,id),bal=Math.max(0,s.total-s.paid);if(bal<=.005)return alert("Venda já quitada.");
- modal("Registrar pagamento",`<p>Saldo atual: <b>${money(bal)}</b></p><div class="grid2">${formField("Valor","amount",bal,"number")}${formField("Data","pay_date",today(),"date")}</div>`,`<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">← Voltar</button><button class="btn primary" onclick="savePayment(${id})">Confirmar pagamento</button></div>`)
+function payment(id, installmentNumber=null){
+ const s=find(db.sales,id); if(!s)return;
+ const schedule=saleInstallments(s);
+ const chosen=installmentNumber? schedule.find(x=>Number(x.installment_number)===Number(installmentNumber)):null;
+ const bal=chosen?Math.max(0,Number(chosen.total)-Number(chosen.paid||0)):Math.max(0,Number(s.total)-Number(s.paid||0));
+ if(bal<=.005)return alert("Parcela/venda já quitada.");
+ const label=chosen?`Parcela ${chosen.installment_number}/${chosen.installments}`:"Venda";
+ modal("Registrar pagamento",`<p>${label} — saldo atual: <b>${money(bal)}</b></p><div class="grid2">${formField("Valor","amount",bal,"number")}${formField("Data","pay_date",today(),"date")}</div>`,`<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">← Voltar</button><button class="btn primary" onclick="savePayment(${id},${chosen?Number(chosen.installment_number):"null"})">Confirmar pagamento</button></div>`)
 }
-function savePayment(id){const s=find(db.sales,id),bal=Math.max(0,s.total-s.paid),v=Number($("#f_amount").value)||0;if(v<=0||v>bal)return alert("Valor inválido.");s.paid+=v;db.payments.push({id:nextId(db.payments),sale_id:id,pay_date:$("#f_pay_date").value,amount:v});save();closeModal();render();toast("Pagamento registrado")}
+function savePayment(id, installmentNumber=null){
+ const s=find(db.sales,id); if(!s)return;
+ const schedule=saleInstallments(s),bal=Math.max(0,Number(s.total)-Number(s.paid||0)),v=Math.round((Number($("#f_amount").value)||0)*100)/100;
+ if(v<=0||v>bal+.005)return alert("Valor inválido.");
+ let remaining=Math.round(v*100)/100;
+ const start=installmentNumber?Math.max(0,schedule.findIndex(x=>Number(x.installment_number)===Number(installmentNumber))):0;
+ for(let i=start;i<schedule.length&&remaining>.005;i++){
+   const item=schedule[i],due=Math.max(0,Number(item.total)-Number(item.paid||0)),use=Math.min(remaining,due);
+   if(use>0){item.paid=Math.round((Number(item.paid||0)+use)*100)/100;remaining=Math.round((remaining-use)*100)/100;}
+ }
+ s.paid=Math.round(schedule.reduce((sum,x)=>sum+Number(x.paid||0),0)*100)/100;
+ db.payments.push({id:nextId(db.payments),sale_id:id,installment_number:installmentNumber||null,pay_date:$("#f_pay_date").value,amount:v});
+ save();closeModal();render();toast("Pagamento registrado")
+}
 
 function legacyReceivableForm(){
  const clients=db.clients.slice().sort((a,b)=>(a.name||"").localeCompare(b.name||""));
@@ -552,16 +597,16 @@ function saveLegacyPayment(id){const x=find(db.legacyReceivables,id),bal=Math.ma
 function deleteLegacyReceivable(id){if(!confirm("Excluir esta parcela antiga?"))return;db.legacyReceivables=db.legacyReceivables.filter(x=>Number(x.id)!==Number(id));save();render();toast("Parcela excluída")}
 function receivables(){
  const q=(document.getElementById("rq")?.value||"").toLowerCase().trim();
- const openSales=db.sales.filter(s=>s.total>s.paid).map(s=>({...s,_kind:"venda"}));
- const openLegacy=db.legacyReceivables.filter(x=>x.total>x.paid).map(x=>({...x,_kind:"anterior"}));
- const all=openSales.concat(openLegacy).sort((a,b)=>(a.due_date||"").localeCompare(b.due_date||""));
+ const openSales=db.sales.flatMap(s=>saleInstallments(s).filter(p=>Number(p.total)>Number(p.paid||0)+.005).map(p=>({...p,_kind:"venda",sale_id:s.id,client_id:s.client_id,sale_date:s.sale_date,description:`Venda — Parcela ${p.installment_number}/${p.installments}`})));
+ const openLegacy=db.legacyReceivables.filter(x=>Number(x.total)>Number(x.paid||0)).map(x=>({...x,_kind:"anterior"}));
+ const all=openSales.concat(openLegacy).sort((a,b)=>(a.due_date||"").localeCompare(b.due_date||"")||Number(a.installment_number||0)-Number(b.installment_number||0));
  const rows=all.filter(x=>{const c=find(db.clients,x.client_id),late=x.due_date&&x.due_date<today();const text=`${c?.name||""} ${x.sale_date||""} ${x.due_date||""} ${x.description||""} ${late?"atrasado":"em aberto"}`.toLowerCase();return text.includes(q)}).map(x=>{
    const c=find(db.clients,x.client_id),bal=Number(x.total)-Number(x.paid||0),late=x.due_date&&x.due_date<today(); const origin=x._kind==="anterior"?"ANTERIOR":"VENDA"; const date=x.sale_date||x.created_date||""; const parcel=x.installments>1?`${x.installment_number}/${x.installments}`:"1/1";
-   const action=x._kind==="anterior"?`<button class="icon-btn" onclick="legacyPayment(${x.id})">Pagamento</button> <button class="icon-btn danger-action" onclick="deleteLegacyReceivable(${x.id})">Excluir</button>`:`<button class="icon-btn" onclick="payment(${x.id})">Pagamento</button>${c?.phone?` <button class="icon-btn" onclick="whatsapp(${x.id})">WhatsApp</button>`:""}`;
+   const action=x._kind==="anterior"?`<button class="icon-btn" onclick="legacyPayment(${x.id})">Pagamento</button> <button class="icon-btn danger-action" onclick="deleteLegacyReceivable(${x.id})">Excluir</button>`:`<button class="icon-btn" onclick="payment(${x.sale_id},${Number(x.installment_number)})">Pagamento</button>${c?.phone?` <button class="icon-btn" onclick="whatsapp(${x.sale_id})">WhatsApp</button>`:""}`;
    return `<tr class="${late?"row-late":""}"><td>${esc(c?.name||"Não informado")}</td><td>${origin}</td><td>${esc(x.description||"")}</td><td>${dateBR(date)}</td><td>${dateBR(x.due_date)}</td><td>${parcel}</td><td>${money(x.total)}</td><td>${money(x.paid||0)}</td><td class="money">${money(bal)}</td><td><span class="status ${late?"bad":"open"}">${late?"ATRASADO":"EM ABERTO"}</span></td><td>${action}</td></tr>`;
  });
  const actions=`<button class="btn primary" onclick="newLegacyReceivable()">+ Saldo a receber antigo</button>`;
- return pageHead("Contas a Receber",actions) + `<div class="panel"><p class="field-help" style="margin:0 0 10px">Use <b>Saldo a receber antigo</b> para cadastrar parcelas de roupas vendidas antes do aplicativo. Elas entram em A Receber sem alterar estoque nem vendas.</p>${searchBox("rq","Buscar cliente, descrição, vencimento ou status...",q)}${table(["Cliente","Origem","Descrição","Lançamento","Vencimento","Parcela","Total","Pago","Saldo","Status","Ações"],rows.join(""))}</div>`;
+ return pageHead("Contas a Receber",actions) + `<div class="panel"><p class="field-help" style="margin:0 0 10px">Use <b>Saldo a receber antigo</b> para cadastrar parcelas de roupas vendidas antes do aplicativo. Elas entram em A Receber sem alterar estoque nem vendas.</p>${searchBox("rq","Buscar cliente, descrição, vencimento ou status...",q)}${table(["Cliente","Origem","Descrição","Lançamento","Vencimento","Parcela","Valor","Pago","Saldo","Status","Ações"],rows.join(""))}</div>`;
 }
 function whatsapp(id){
  const s=find(db.sales,id),c=find(db.clients,s.client_id);
@@ -754,12 +799,12 @@ function reportDetail(type){
    const rows=list.map(x=>{const c=find(db.clients,x.client_id);const late=x.due_date&&x.due_date<today()&&Number(x.total||0)>Number(x.paid||0);return `<tr class="${late?'row-late':''}"><td>${esc(x.sale_date||'')}</td><td>${esc(c?.name||'Não informado')}</td><td>${money(x.total)}</td><td>${money(x.paid||0)}</td><td>${money(Math.max(0,Number(x.total||0)-Number(x.paid||0)))} ${late?'<b>ATRASADO</b>':''}</td></tr>`}).join('');
    body=`<div class="detail-summary"><b>${list.length}</b> venda(s) &nbsp;•&nbsp; <b>${money(total)}</b></div>${table(['Data','Cliente','Total','Recebido','Saldo'],rows,'Nenhuma venda encontrada.')}`;
  } else if(type==='receivable'){
-   const sales=db.sales.filter(x=>Number(x.total||0)>Number(x.paid||0)).map(x=>{const c=find(db.clients,x.client_id);return {date:x.due_date||'',client:c?.name||'Não informado',desc:'Venda',total:Number(x.total||0)-Number(x.paid||0),status:(x.due_date&&x.due_date<today())?'ATRASADO':'EM ABERTO'};});
+   const sales=db.sales.flatMap(x=>saleInstallments(x).filter(p=>Number(p.total||0)>Number(p.paid||0)+.005).map(p=>{const c=find(db.clients,x.client_id);return {date:p.due_date||'',client:c?.name||'Não informado',desc:`Venda — Parcela ${p.installment_number}/${p.installments}`,total:Number(p.total||0)-Number(p.paid||0),status:(p.due_date&&p.due_date<today())?'ATRASADO':'EM ABERTO'};}));
    const legacy=db.legacyReceivables.filter(x=>Number(x.total||0)>Number(x.paid||0)).map(x=>{const c=find(db.clients,x.client_id);return {date:x.due_date||'',client:c?.name||'Não informado',desc:x.description||'Saldo anterior',total:Number(x.total||0)-Number(x.paid||0),status:(x.due_date&&x.due_date<today())?'ATRASADO':'EM ABERTO'};});
    const list=[...sales,...legacy].sort((a,b)=>String(a.date).localeCompare(String(b.date)));
    const total=list.reduce((s,x)=>s+x.total,0);
    const rows=list.map(x=>`<tr class="${x.status==='ATRASADO'?'row-late':''}"><td>${esc(x.client)}</td><td>${esc(x.desc)}</td><td>${esc(x.date||'')}</td><td>${money(x.total)}</td><td>${x.status}</td></tr>`).join('');
-   body=`<div class="detail-summary"><b>${list.length}</b> recebimento(s) em aberto &nbsp;•&nbsp; <b>${money(total)}</b></div>${table(['Cliente','Origem','Vencimento','Saldo','Status'],rows,'Nenhum valor a receber.')}`;
+   body=`<div class="detail-summary"><b>${list.length}</b> parcela(s)/recebimento(s) em aberto &nbsp;•&nbsp; <b>${money(total)}</b></div>${table(['Cliente','Origem','Vencimento','Saldo','Status'],rows,'Nenhum valor a receber.')}`;
  } else if(type==='stock'){
    const list=db.products.filter(p=>Number(p.stock||0)>0);
    const total=list.reduce((s,p)=>s+Number(p.stock||0)*Number(p.sale||0),0);
