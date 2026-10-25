@@ -488,9 +488,12 @@ function newSale(){
    selectSaleProduct(Number(option.dataset.productId));
  });
  function showResults(term=""){
-   const q=term.trim().toLowerCase();
-   const matches=prods.filter(p=>`${p.kind||""} ${p.description||""} ${p.size||""}`.toLowerCase().includes(q));
-   results.innerHTML=matches.length?matches.map(p=>`<button type="button" class="product-search-option" data-product-id="${p.id}"><span><b>${esc(p.description||"Sem descrição")}</b><small>${esc(p.kind||"")}${p.size?` • Tam. ${esc(p.size)}`:""}</small></span><strong>${money(p.sale)}<small> estoque: ${p.stock}</small></strong></button>`).join(""): `<div class="product-search-empty">Nenhum produto encontrado.</div>`;
+   const q=term.trim().toLocaleLowerCase("pt-BR");
+   // Ordena uma cópia para não alterar a lista original nem a ordem usada pelo restante do sistema.
+   const matches=[...prods]
+     .filter(p=>`${p.kind||""} ${p.description||""} ${p.size||""}`.toLocaleLowerCase("pt-BR").includes(q))
+     .sort((a,b)=>String(a.description||"Sem descrição").localeCompare(String(b.description||"Sem descrição"),"pt-BR",{sensitivity:"base",numeric:true}) || String(a.kind||"").localeCompare(String(b.kind||""),"pt-BR",{sensitivity:"base"}) || String(a.size||"").localeCompare(String(b.size||""),"pt-BR",{sensitivity:"base",numeric:true}) || String(a.id).localeCompare(String(b.id),"pt-BR",{numeric:true}));
+   results.innerHTML=matches.length?matches.map(p=>`<button type="button" class="product-search-option" data-product-id="${p.id}"><span><b>${esc(p.description||"Sem descrição")}</b></span></button>`).join(""): `<div class="product-search-empty">Nenhum produto encontrado.</div>`;
    results.classList.remove("hidden");
    results.hidden=false;
    results.style.display="block";
