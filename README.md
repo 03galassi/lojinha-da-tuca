@@ -3,3 +3,9 @@ Lojinha da Tuca V68 — visual boutique fiel ao modelo aprovado. Base funcional 
 
 ## Correção V70 — parcelas mensais em A Receber
 A versão V70 gera parcelas mensais separadas para vendas parceladas, com vencimento mês a mês, numeração correta (1/N, 2/N...) e registro de pagamentos por parcela. O primeiro vencimento usa a data informada na venda; os próximos vencem nos meses seguintes. Datas no fim do mês são ajustadas para o último dia válido do mês.
+
+
+## Correção v71 (25/10/2026)
+- Restaurar automaticamente a sessão autenticada do Supabase ao atualizar ou reabrir a página.
+- Persistir sessão no armazenamento local do navegador, com renovação automática de token.
+- Atualizar as versões dos arquivos e o cache do Service Worker para distribuir a correção.

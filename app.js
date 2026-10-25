@@ -1,6 +1,6 @@
-// V56 - banco online Supabase + autenticação para a Lojinha da Tuca.
+// V71 - banco online Supabase + restauração de sessão para a Lojinha da Tuca.
 const KEY="lojinha_tuca_web_v1";
-const UI_VERSION="55";
+const UI_VERSION="71";
 const SUPABASE_URL="https://tevhntrstbdakudpsudb.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY="sb_publishable_Ez9515GMQgwJ9WS9XDsvXQ_Lz3L5lHl";
 let sb=null;
@@ -69,19 +69,47 @@ async function syncOnlineState(){
   }finally{onlineSyncBusy=false;}
 }
 async function initSupabase(){
-  // V57: inicia sempre mostrando a tela de login.
-  // A sessão existente não abre a loja automaticamente; o usuário confirma o acesso pelo botão Entrar.
+  // V71: restaura a sessão persistida antes de exigir novo login.
+  // A sessão é mantida pelo Supabase no armazenamento local do navegador.
   showLogin();
   try{
     if(!window.supabase?.createClient)throw new Error('Biblioteca Supabase não carregada.');
-    sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
-    sb.auth.onAuthStateChange(async(event)=>{
-      if(event==='SIGNED_OUT'){ showLogin(); }
+    sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{
+      auth:{
+        persistSession:true,
+        autoRefreshToken:true,
+        detectSessionInUrl:true,
+        storage:window.localStorage
+      }
     });
+    // Não executar operações assíncronas demoradas dentro do callback de auth:
+    // isso evita bloqueios no gerenciador de sessão em alguns navegadores móveis.
+    sb.auth.onAuthStateChange((event)=>{
+      if(event==='SIGNED_OUT'){
+        onlineReady=false;
+        window.tucaProfile=null;
+        showLogin();
+      }
+    });
+
+    setOnlineStatus('● Verificando sessão...',false);
+    const {data,error}=await sb.auth.getSession();
+    if(error)throw error;
+    const session=data?.session;
+    if(session?.user){
+      const allowed=await authorizeUser(session.user);
+      if(allowed){
+        await startStoreOnline();
+        return;
+      }
+      return;
+    }
     setOnlineStatus('● Aguardando login...',false);
+    showLogin();
   }catch(e){
-    console.error('Tuca: falha na inicialização Supabase',e);
-    showLogin('Não foi possível iniciar o acesso. Verifique sua conexão.');
+    console.error('Tuca: falha na inicialização/restauração da sessão Supabase',e);
+    setOnlineStatus('● Aguardando login...',false);
+    showLogin('Não foi possível restaurar a sessão. Entre novamente.');
   }
 }
 async function authorizeUser(user){
@@ -928,7 +956,7 @@ async function installApp(){
 window.addEventListener("beforeinstallprompt",e=>{ e.preventDefault(); deferredInstallPrompt=e; updateInstallButtons(true); });
 window.addEventListener("appinstalled",()=>{ deferredInstallPrompt=null; updateInstallButtons(false); });
 if("serviceWorker" in navigator && location.protocol.startsWith("http")){
-  window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js?v=58.20261006").catch(e=>console.warn("PWA: service worker não registrado",e)));
+  window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js?v=71.20261025").catch(e=>console.warn("PWA: service worker não registrado",e)));
 }
 
 $("#backupFileInput")?.addEventListener("change",e=>importBackupFile(e.target.files?.[0]));
